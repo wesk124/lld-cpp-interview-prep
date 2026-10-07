@@ -1,30 +1,28 @@
-# Parking Lot Reference Design
+# Parking Lot: Reference Design (C++17)
 
-## Responsibilities
+[Question](../../questions/01-parking-lot/README.md) · [Tests](tests/parking_lot_test.cpp)
 
-| Type | Responsibility |
-| --- | --- |
-| `Vehicle` | Immutable vehicle identity and type |
-| `ParkingSpot` | Compatibility and occupancy state for one spot |
-| `PricingPolicy` | Replaceable fee calculation |
-| `Ticket` | Stable record of an active parking session |
-| `Receipt` | Completed session and final charge |
-| `ParkingLot` | Allocation, active-session coordination, and synchronization |
+## Responsibilities, ownership, and invariants
 
-## Ownership
+The existing multi-file design uses Vehicle/Ticket/Receipt values, ParkingSpot for compatibility and occupancy, PricingPolicy for fee rules, and ParkingLot for session coordination.
 
-`ParkingLot` owns spots by value and exclusively owns its pricing policy through `std::unique_ptr`. Tickets contain stable IDs rather than pointers into the spot container. Callers receive ticket and receipt values, so their lifetimes do not depend on the lot.
+The lot owns spots in a vector and its pricing strategy via unique_ptr. Cross-object relationships use stable IDs; returned values do not borrow internal storage.
 
-## Change isolation
+One mutex guards spots, active tickets, active plates, and ticket numbering. Parking stages allocations and rolls back indexes on failure. Checkout builds a receipt and validates/prices before changing any occupied state.
 
-`PricingPolicy` is a Strategy. It isolates fee-rule changes from parking allocation and session state. Spot compatibility remains close to `ParkingSpot`, which owns that rule for the current scope.
+Allocation and checkout scan N spots: O(N), plus expected O(1) unordered index operations. Space is O(N + A), with A active sessions.
 
-## Thread safety
+HourlyPricingPolicy uses C++17 chrono::ceil, checks arithmetic overflow, and charges a minimum hour. The lot does not depend on the concrete hourly strategy.
 
-A single mutex protects spots, active tickets, active license plates, and the ticket sequence. Parking and checkout update related state under one lock, preserving cross-container invariants. Finer-grained locking should be introduced only after measurement.
+The strategy runs under the lot lock. Custom policies must be bounded, non-reentrant, and free of I/O; production payments require an explicit transaction boundary.
 
-## Tradeoffs
 
-The implementation linearly scans spots. That keeps the example interview-sized. At larger scale, available spot IDs could be indexed by type without changing the public interface.
+## Scope
 
-The pricing policy is called while the mutex is held. The included policy is local and constant-time. A policy that performs I/O should receive an immutable session snapshot and run outside the critical section, with deliberate transaction semantics.
+No payments, persistence, reservations, or distributed coordination. Prices are integer cents. Use system_clock timestamps supplied by the caller; the lot rejects exits earlier than their entries.
+
+## Extend it yourself
+
+- Add EV charging capabilities without a subclass explosion.
+- Add weekend pricing or floors/capacity displays.
+- Explain durable checkout with a payment system.

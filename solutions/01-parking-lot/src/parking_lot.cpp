@@ -1,6 +1,7 @@
 #include "lld/parking_lot/parking_lot.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -27,6 +28,12 @@ ParkingLot::ParkingLot(std::vector<ParkingSpot> spots,
     if (!pricing_policy_) {
         throw std::invalid_argument("pricing policy is required");
     }
+    std::unordered_set<std::string> ids;
+    for (const auto& spot : spots_) {
+        if (!spot.is_available() || !ids.insert(spot.id()).second) {
+            throw std::invalid_argument("spots must be empty with unique IDs");
+        }
+    }
 }
 
 std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered_at) {
@@ -34,8 +41,8 @@ std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered
         throw std::invalid_argument("license plate is required");
     }
 
-    const std::lock_guard lock(mutex_);
-    if (active_license_plates_.contains(vehicle.license_plate)) {
+    const std::lock_guard<std::mutex> lock(mutex_);
+    if (active_license_plates_.count(vehicle.license_plate) != 0) {
         return std::nullopt;
     }
 
@@ -44,21 +51,30 @@ std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered
         return std::nullopt;
     }
 
-    spot->occupy(vehicle);
-    Ticket ticket{
-        .id = "T-" + std::to_string(next_ticket_number_++),
-        .license_plate = vehicle.license_plate,
-        .spot_id = spot->id(),
-        .entered_at = entered_at,
-    };
-
-    active_license_plates_.insert(vehicle.license_plate);
+    if (next_ticket_number_ == std::numeric_limits<unsigned long long>::max()) {
+        throw std::overflow_error("ticket IDs exhausted");
+    }
+    Ticket ticket{"T-" + std::to_string(next_ticket_number_), vehicle.license_plate,
+                  spot->id(), entered_at};
     active_tickets_.emplace(ticket.id, ticket);
-    return ticket;
+    try {
+        active_license_plates_.insert(vehicle.license_plate);
+        try {
+            spot->occupy(vehicle);
+        } catch (...) {
+            active_license_plates_.erase(vehicle.license_plate);
+            throw;
+        }
+    } catch (...) {
+        active_tickets_.erase(ticket.id);
+        throw;
+    }
+    ++next_ticket_number_;
+    return std::optional<Ticket>(std::move(ticket));
 }
 
 std::optional<Receipt> ParkingLot::exit(const std::string& ticket_id, TimePoint exited_at) {
-    const std::lock_guard lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     const auto ticket_it = active_tickets_.find(ticket_id);
     if (ticket_it == active_tickets_.end()) {
         return std::nullopt;
@@ -72,25 +88,25 @@ std::optional<Receipt> ParkingLot::exit(const std::string& ticket_id, TimePoint 
         throw std::logic_error("active ticket points to an unknown spot");
     }
 
+    if (exited_at < ticket.entered_at) {
+        throw std::invalid_argument("exit time cannot precede entry time");
+    }
     const PricingQuote quote = pricing_policy_->calculate(ticket.entered_at, exited_at);
+    if (quote.fee_cents < 0 || quote.charged_hours < 0) {
+        throw std::logic_error("pricing policy returned an invalid quote");
+    }
+    Receipt receipt{ticket.id, ticket.license_plate, ticket.spot_id, ticket.entered_at,
+                    exited_at, quote.charged_hours, quote.fee_cents};
 
     spot_it->vacate();
     active_license_plates_.erase(ticket.license_plate);
     active_tickets_.erase(ticket_it);
 
-    return Receipt{
-        .ticket_id = ticket.id,
-        .license_plate = ticket.license_plate,
-        .spot_id = ticket.spot_id,
-        .entered_at = ticket.entered_at,
-        .exited_at = exited_at,
-        .charged_hours = quote.charged_hours,
-        .fee_cents = quote.fee_cents,
-    };
+    return std::optional<Receipt>(std::move(receipt));
 }
 
 std::size_t ParkingLot::available_spots() const {
-    const std::lock_guard lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     return static_cast<std::size_t>(std::count_if(
         spots_.begin(), spots_.end(), [](const ParkingSpot& spot) { return spot.is_available(); }));
 }

@@ -11,7 +11,12 @@ namespace lld::parking_lot {
 
 class ParkingSpot {
 public:
-    ParkingSpot(std::string id, SpotType type) : id_(std::move(id)), type_(type) {}
+    ParkingSpot(std::string id, SpotType type) : id_(std::move(id)), type_(type) {
+        if (id_.empty() || (type != SpotType::motorcycle && type != SpotType::compact &&
+                            type != SpotType::large)) {
+            throw std::invalid_argument("spot ID and valid type required");
+        }
+    }
 
     [[nodiscard]] const std::string& id() const noexcept { return id_; }
     [[nodiscard]] SpotType type() const noexcept { return type_; }
@@ -23,7 +28,7 @@ public:
     [[nodiscard]] bool accepts(VehicleType vehicle_type) const noexcept;
 
     void occupy(const Vehicle& vehicle) {
-        if (!is_available() || !accepts(vehicle.type)) {
+        if (vehicle.license_plate.empty() || !is_available() || !accepts(vehicle.type)) {
             throw std::logic_error("spot cannot accept vehicle");
         }
         license_plate_ = vehicle.license_plate;

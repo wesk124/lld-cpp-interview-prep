@@ -1,116 +1,121 @@
+#ifdef LLD_PRACTICE
+#include "starter.hpp"
+#else
 #include "lld/parking_lot/parking_lot.hpp"
-
+#endif
+#include "test_support.hpp"
+#include <atomic>
 #include <chrono>
-#include <cstdlib>
-#include <exception>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-
-namespace {
+#include <limits>
+#include <thread>
 
 using namespace lld::parking_lot;
 using namespace std::chrono_literals;
 
-void expect(bool condition, const std::string& message) {
-    if (!condition) {
-        std::cerr << "FAILED: " << message << '\n';
-        std::exit(EXIT_FAILURE);
-    }
-}
-
 ParkingLot make_lot() {
-    std::vector<ParkingSpot> spots;
-    spots.emplace_back("M-1", SpotType::motorcycle);
-    spots.emplace_back("C-1", SpotType::compact);
-    spots.emplace_back("L-1", SpotType::large);
-    return ParkingLot(std::move(spots), std::make_unique<HourlyPricingPolicy>(500));
+    return ParkingLot({ParkingSpot("M-1", SpotType::motorcycle),
+                       ParkingSpot("C-1", SpotType::compact),
+                       ParkingSpot("L-1", SpotType::large)},
+                      std::make_unique<HourlyPricingPolicy>(500));
 }
 
-void parks_in_smallest_compatible_spot() {
-    auto lot = make_lot();
-    const TimePoint now{};
-
-    const auto motorcycle = lot.park({"MOTO", VehicleType::motorcycle}, now);
-    const auto car = lot.park({"CAR", VehicleType::car}, now);
-    const auto truck = lot.park({"TRUCK", VehicleType::truck}, now);
-
-    expect(motorcycle && motorcycle->spot_id == "M-1", "motorcycle should use motorcycle spot");
-    expect(car && car->spot_id == "C-1", "car should use compact spot");
-    expect(truck && truck->spot_id == "L-1", "truck should use large spot");
-    expect(lot.available_spots() == 0, "all spots should be occupied");
-}
-
-void rejects_when_no_compatible_spot_exists() {
-    auto lot = make_lot();
-    const TimePoint now{};
-
-    expect(lot.park({"TRUCK-1", VehicleType::truck}, now).has_value(), "first truck should park");
-    expect(!lot.park({"TRUCK-2", VehicleType::truck}, now).has_value(),
-           "second truck should be rejected");
-}
-
-void rejects_duplicate_active_vehicle() {
-    auto lot = make_lot();
-    const TimePoint now{};
-
-    expect(lot.park({"DUP", VehicleType::car}, now).has_value(), "vehicle should park once");
-    expect(!lot.park({"DUP", VehicleType::car}, now).has_value(),
-           "same plate should not receive two active tickets");
-}
-
-void exit_rounds_up_fee_and_releases_spot() {
-    auto lot = make_lot();
-    const TimePoint entered{};
-    const auto ticket = lot.park({"CAR", VehicleType::car}, entered);
-    expect(ticket.has_value(), "car should park");
-
-    const auto receipt = lot.exit(ticket->id, entered + 61min);
-    expect(receipt.has_value(), "active ticket should exit");
-    expect(receipt->charged_hours == 2, "61 minutes should round to two hours");
-    expect(receipt->fee_cents == 1000, "two hours should cost 1000 cents");
-    expect(lot.available_spots() == 3, "checkout should release the spot");
-    expect(!lot.exit(ticket->id, entered + 62min).has_value(), "ticket should be single-use");
-}
-
-void charges_at_least_one_hour() {
-    auto lot = make_lot();
-    const TimePoint entered{};
-    const auto ticket = lot.park({"QUICK", VehicleType::motorcycle}, entered);
-    expect(ticket.has_value(), "motorcycle should park");
-
-    const auto receipt = lot.exit(ticket->id, entered);
-    expect(receipt && receipt->charged_hours == 1, "zero elapsed time should charge one hour");
-    expect(receipt && receipt->fee_cents == 500, "minimum charge should use hourly rate");
-}
-
-void rejects_exit_before_entry_without_mutating_state() {
-    auto lot = make_lot();
-    const TimePoint entered = TimePoint{} + 1h;
-    const auto ticket = lot.park({"TIME", VehicleType::car}, entered);
-    expect(ticket.has_value(), "car should park");
-
-    bool threw = false;
-    try {
-        static_cast<void>(lot.exit(ticket->id, entered - 1min));
-    } catch (const std::invalid_argument&) {
-        threw = true;
-    }
-    expect(threw, "invalid time should be rejected");
-    expect(lot.available_spots() == 2, "failed checkout must not release the spot");
-    expect(lot.exit(ticket->id, entered + 1min).has_value(), "ticket should remain active");
-}
-
-}  // namespace
+class FlatPricing final : public PricingPolicy {
+public:
+    PricingQuote calculate(TimePoint, TimePoint) const override { return PricingQuote{0, 200}; }
+};
+class FailingPricing final : public PricingPolicy {
+public:
+    PricingQuote calculate(TimePoint, TimePoint) const override { throw std::runtime_error("pricing failure"); }
+};
 
 int main() {
-    parks_in_smallest_compatible_spot();
-    rejects_when_no_compatible_spot_exists();
-    rejects_duplicate_active_vehicle();
-    exit_rounds_up_fee_and_releases_spot();
-    charges_at_least_one_hour();
-    rejects_exit_before_entry_without_mutating_state();
-    std::cout << "All parking lot tests passed\n";
-    return EXIT_SUCCESS;
+    test::Suite suite;
+    suite.run("smallest compatible allocation", [] {
+        auto lot = make_lot();
+        auto motorcycle = lot.park({"m", VehicleType::motorcycle}, TimePoint{});
+        auto car = lot.park({"c", VehicleType::car}, TimePoint{});
+        auto truck = lot.park({"t", VehicleType::truck}, TimePoint{});
+        CHECK(motorcycle && motorcycle->spot_id == "M-1");
+        CHECK(car && car->spot_id == "C-1");
+        CHECK(truck && truck->spot_id == "L-1");
+        CHECK(lot.available_spots() == 0);
+    });
+    suite.run("larger spot fallback and compatible capacity", [] {
+        auto lot = make_lot();
+        CHECK(lot.park({"c1", VehicleType::car}, TimePoint{}));
+        auto second = lot.park({"c2", VehicleType::car}, TimePoint{});
+        CHECK(second && second->spot_id == "L-1");
+        CHECK(!lot.park({"t", VehicleType::truck}, TimePoint{}));
+        CHECK(lot.available_spots() == 1);
+    });
+    suite.run("duplicate active plate rejected", [] {
+        auto lot = make_lot();
+        CHECK(lot.park({"same", VehicleType::car}, TimePoint{}));
+        CHECK(!lot.park({"same", VehicleType::car}, TimePoint{}));
+    });
+    suite.run("partial-hour billing, release, and single-use ticket", [] {
+        auto lot = make_lot();
+        auto ticket = lot.park({"car", VehicleType::car}, TimePoint{});
+        CHECK(ticket);
+        auto receipt = lot.exit(ticket->id, TimePoint{} + 61min);
+        CHECK(receipt && receipt->charged_hours == 2 && receipt->fee_cents == 1000);
+        CHECK(lot.available_spots() == 3);
+        CHECK(!lot.exit(ticket->id, TimePoint{} + 62min));
+        CHECK(lot.park({"car", VehicleType::car}, TimePoint{} + 62min));
+    });
+    suite.run("minimum and exact-hour billing", [] {
+        HourlyPricingPolicy policy(500);
+        CHECK(policy.calculate(TimePoint{}, TimePoint{}).fee_cents == 500);
+        CHECK(policy.calculate(TimePoint{}, TimePoint{} + 1h).fee_cents == 500);
+        CHECK(policy.calculate(TimePoint{}, TimePoint{} + 1h + TimePoint::duration{1}).fee_cents == 1000);
+    });
+    suite.run("invalid checkout time leaves session active", [] {
+        auto lot = make_lot();
+        auto ticket = lot.park({"car", VehicleType::car}, TimePoint{} + 1h);
+        CHECK(ticket);
+        EXPECT_THROW(std::invalid_argument, lot.exit(ticket->id, TimePoint{}));
+        CHECK(lot.available_spots() == 2);
+        CHECK(lot.exit(ticket->id, TimePoint{} + 2h));
+    });
+    suite.run("pricing strategy does not alter allocation", [] {
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<FlatPricing>());
+        auto ticket = lot.park({"truck", VehicleType::truck}, TimePoint{});
+        CHECK(ticket);
+        auto receipt = lot.exit(ticket->id, TimePoint{} + 10h);
+        CHECK(receipt && receipt->fee_cents == 200);
+    });
+    suite.run("pricing failure cannot release a spot", [] {
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<FailingPricing>());
+        auto ticket = lot.park({"truck", VehicleType::truck}, TimePoint{});
+        CHECK(ticket);
+        EXPECT_THROW(std::runtime_error, lot.exit(ticket->id, TimePoint{} + 1h));
+        CHECK(lot.available_spots() == 0);
+        CHECK(!lot.park({"truck", VehicleType::truck}, TimePoint{}));
+    });
+    suite.run("constructor and vehicle validation", [] {
+        EXPECT_THROW(std::invalid_argument,
+                     ParkingLot({ParkingSpot("same", SpotType::large), ParkingSpot("same", SpotType::large)},
+                                std::make_unique<HourlyPricingPolicy>(500)));
+        auto lot = make_lot();
+        EXPECT_THROW(std::invalid_argument, lot.park({"", VehicleType::car}, TimePoint{}));
+        CHECK(!lot.exit("unknown", TimePoint{}));
+    });
+    suite.run("fee and duration overflow are rejected", [] {
+        HourlyPricingPolicy policy(std::numeric_limits<int>::max());
+        EXPECT_THROW(std::overflow_error, policy.calculate(TimePoint{}, TimePoint{} + 2h));
+        EXPECT_THROW(std::overflow_error, policy.calculate(TimePoint::min(), TimePoint::max()));
+    });
+    suite.run("concurrent parks cannot overfill", [] {
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<HourlyPricingPolicy>(500));
+        std::atomic<int> accepted{0};
+        std::vector<std::thread> threads;
+        for (int i = 0; i < 8; ++i) {
+            threads.emplace_back([&, i] {
+                if (lot.park({std::to_string(i), VehicleType::truck}, TimePoint{})) { ++accepted; }
+            });
+        }
+        for (auto& thread : threads) { thread.join(); }
+        CHECK(accepted == 1 && lot.available_spots() == 0);
+    });
+    return suite.finish();
 }

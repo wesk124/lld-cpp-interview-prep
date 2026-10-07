@@ -1,86 +1,101 @@
 # C++ Low-Level Design Interview Prep
 
-A practical, code-first path for preparing for low-level design (LLD) interviews in modern C++.
+A public, code-first collection for learning and practicing low-level design (LLD) interviews in **C++17**. Standard-library dependencies only: no C++20 features, external test framework, or `bits/stdc++.h`.
 
-The repository focuses on what interviewers evaluate: clarifying requirements, assigning responsibilities, defining clean interfaces, explaining ownership, handling change, and implementing critical workflows with testable code.
+Each of the nine examples has a question with interviewee TODOs, an explained reference implementation, deterministic behavioral tests, and related quiz questions. These are focused interview exercises, not production-ready services.
 
-## How to use this repository
+## Questions and solutions
 
-For each problem:
-
-1. Open the matching directory under `questions/` and avoid `solutions/`.
-2. Spend 45–60 minutes designing aloud as if an interviewer were present.
-3. Complete the marked `TODO` items and implement one important workflow.
-4. Compare your approach with the matching reference solution.
-5. Apply an extension from the problem's follow-up section.
-6. Record tradeoffs and mistakes in a copy of `templates/retrospective.md`.
-
-## Repository sections
-
-- `questions/`: interview prompts and C++ starter code with explicit `TODO` tasks
-- `solutions/`: explained, buildable reference implementations
-- `quizzes/`: quick knowledge checks with separate answer keys
-- `docs/`: interview method and review rubric
-- `templates/`: reusable requirements and retrospective documents
-
-## Six-week roadmap
-
-| Week | Focus | Suggested problems |
+| Question / TODO starter | Solution | Main concepts |
 | --- | --- | --- |
-| 1 | OOP, SOLID, composition, RAII | Tic-tac-toe, parking lot |
-| 2 | Strategy, Factory, Observer, State | Vending machine, elevator |
-| 3 | Command, Decorator, Adapter, Chain | Logger, notification service |
-| 4 | Domain modeling and workflows | Library, hotel, car rental |
-| 5 | Thread safety and event-driven components | Cache, rate limiter, scheduler |
-| 6 | Timed mocks and redesign drills | ATM, chess, expense sharing |
+| [Parking Lot](questions/01-parking-lot/README.md) | [Reference design](solutions/01-parking-lot/design.md) | Ownership, Strategy, compatible allocation, atomic checkout |
+| [Connect Four](questions/02-connect-four/README.md) | [Reference design](solutions/02-connect-four/design.md) | Board modeling, gravity, directional win detection, terminal states |
+| [Amazon Locker](questions/03-amazon-locker/README.md) | [Reference design](solutions/03-amazon-locker/design.md) | Size-based allocation, injected codes, expiration, physical occupancy |
+| [Elevator](questions/04-elevator/README.md) | [Reference design](solutions/04-elevator/design.md) | Door interlocks, LOOK scheduling, bank dispatch Strategy |
+| [File System](questions/05-file-system/README.md) | [Reference design](solutions/05-file-system/design.md) | Composite hierarchy, unique ownership, path validation, traversal |
+| [Movie Ticket Booking](questions/06-movie-ticket-booking/README.md) | [Reference design](solutions/06-movie-ticket-booking/design.md) | Atomic seat holds, state machine, expiry, idempotency |
+| [Logging Service](questions/07-logging-service/README.md) | [Reference design](solutions/07-logging-service/design.md) | Sink interfaces, fanout, failure isolation, lock/lifetime boundaries |
+| [Rate Limiter](questions/08-rate-limiter/README.md) | [Reference design](solutions/08-rate-limiter/design.md) | Token-bucket invariants, weighted requests, monotonic time, contention |
+| [Inventory Management](questions/09-inventory-management/README.md) | [Reference design](solutions/09-inventory-management/design.md) | Stock invariants, multi-SKU transactions, idempotent lifecycle |
 
-## Included now
+## Practice without seeing the answer
 
-- A parking-lot interview question with TODO-based starter code
-- A complete parking-lot reference solution using C++20
-- Explicit object ownership and stable identifiers
-- Strategy-based pricing
-- Thread-safe park and exit operations
-- Deterministic tests using injected timestamps
-- Reusable interview and retrospective templates
-- GitHub Actions CI with strict compiler warnings
+1. Pick a directory under `questions/`. Clarify the scope and state your invariants aloud.
+2. Complete its `starter.hpp` TODOs. You may redesign the internals while keeping the public test contract.
+3. Spend 45–60 minutes on the base design, then run the practice target.
+4. Compare with `solutions/`, explain tradeoffs, and attempt a follow-up change.
+5. Write a retrospective using [the template](templates/retrospective.md).
 
-## Build and test
+The starter headers compile, but intentionally throw TODO errors. **Reference tests passing does not mean your attempt passes**: practice targets explicitly compile the question header and never link the solution.
 
-Requirements: CMake 3.20+ and a C++20 compiler.
+## Build and test all reference solutions
+
+Requirements: a C++17 compiler (GCC, Clang/Apple Clang, or MSVC) and CMake 3.20+.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Enable AddressSanitizer and UndefinedBehaviorSanitizer with GCC or Clang:
+Enable AddressSanitizer and UndefinedBehaviorSanitizer on GCC/Clang:
 
 ```bash
 cmake -S . -B build -DLLD_ENABLE_SANITIZERS=ON
-cmake --build build
+cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-## Interview workflow
+Without CMake, use the GCC/Clang direct-build script (UBSan enabled by default):
 
-A good 60-minute structure is:
+```bash
+bash scripts/test.sh
+bash scripts/test.sh 02-connect-four
+```
 
-- 5–8 minutes: clarify requirements and scope
-- 8–10 minutes: identify entities, responsibilities, and invariants
-- 10–15 minutes: define interfaces and relationships
-- 15–20 minutes: implement the critical workflow
-- 5 minutes: discuss tests, concurrency, failures, and extensions
+## Run one interviewee attempt
 
-See [the interview playbook](docs/interview-playbook.md) for the detailed approach and [the review checklist](docs/review-checklist.md) for a self-review rubric.
+Example: Connect Four. Substitute any catalog directory name.
 
-Start with the [C++ LLD foundations quiz](quizzes/questions.md), then check the [quiz solutions](quizzes/solutions.md).
+```bash
+cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=02-connect-four
+cmake --build build-practice --target practice_tests
+ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
+```
 
-## Contributions
+Or:
 
-New problems, alternative designs, tests, and explanations are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+```bash
+bash scripts/test.sh 02-connect-four practice
+```
 
-## License
+Use `CXX=clang++` to select Clang in the shell script. For compiler environments without UBSan, set `LLD_SANITIZERS=none`. Tests avoid wall-clock sleeps and include concurrent capacity/record-count cases where appropriate; sanitizer runs alone do not prove race freedom.
 
-MIT
+## Quizzes
+
+- [C++ LLD foundations](quizzes/questions.md) → [answers](quizzes/solutions.md)
+- [Nine-example scenario quiz](quizzes/examples-questions.md) → [answers](quizzes/examples-solutions.md)
+
+Keep answer files closed until you commit to your response. Explain why an alternative would fail, not just which pattern name applies.
+
+## Six-week study plan
+
+| Week | Practice | Focus |
+| --- | --- | --- |
+| 1 | Connect Four, Parking Lot | Ownership, invariants, value semantics |
+| 2 | Amazon Locker, Elevator | Lifecycle modeling and allocation/scheduling policies |
+| 3 | File System, Logging Service | Hierarchies, interfaces, lock/lifetime boundaries |
+| 4 | Movie Ticket Booking, Inventory Management | Atomic multi-entity updates and idempotency |
+| 5 | Rate Limiter; revisit concurrency tests | Monotonic time, contention, failure cases |
+| 6 | Timed mocks and follow-ups | Communication, changing requirements, tradeoffs |
+
+## Repository sections
+
+- `questions/`: prompts, contracts, TODO-based runnable starter headers, and test plans
+- `solutions/`: reference code, design explanations, and behavioral tests
+- `quizzes/`: knowledge and scenario questions with separate answer keys
+- `common/`: tiny test harness; no assertions that disappear in release builds
+- `docs/`: [interview playbook](docs/interview-playbook.md) and [review rubric](docs/review-checklist.md)
+- `templates/`: reusable requirements and retrospective notes
+
+Contributions and alternative designs are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Public reuse is covered by the [MIT license](LICENSE).

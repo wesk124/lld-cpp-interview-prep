@@ -4,31 +4,42 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
-        compiler: [gcc, clang]
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            compiler: clang
+            cxx: clang++
+          - os: macos-latest
+            compiler: apple-clang
+            cxx: clang++
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.compiler }} / C++17
+    env:
+      CXX: ${{ matrix.cxx }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Select compiler
-        run: |
-          if [ "$MATRIX_COMPILER" = "gcc" ]; then
-            echo "CXX=g++" >> "$GITHUB_ENV"
-          else
-            echo "CXX=clang++" >> "$GITHUB_ENV"
-          fi
-        env:
-          MATRIX_COMPILER: ${{ matrix.compiler }}
-
-      - name: Configure
+      - name: Configure reference solutions
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DLLD_ENABLE_SANITIZERS=ON
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Test
+      - name: Build all nine examples
+        run: cmake --build build --parallel 2
+      - name: Test all reference solutions
         run: ctest --test-dir build --output-on-failure
+      - name: Compile all independent TODO starters
+        run: |
+          for example in questions/[0-9]*; do
+            slug="${example##*/}"
+            cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE="$slug"
+            cmake --build build-practice --target practice_tests --parallel 2
+          done

@@ -1,6 +1,8 @@
 # Quizzes
 
-Use the quiz before and after each study week. Explain every answer aloud; recognizing a term is not the same as defending a design decision.
+Use the quizzes before and after a study week. Explain every answer aloud.
 
-- [C++ LLD foundations questions](questions.md)
-- [Solutions and explanations](solutions.md)
+| Quiz | Questions | Answers |
+| --- | --- | --- |
+| C++ LLD foundations | [Questions](questions.md) | [Explanations](solutions.md) |
+| Nine-example design scenarios | [Questions](examples-questions.md) | [Explanations](examples-solutions.md) |

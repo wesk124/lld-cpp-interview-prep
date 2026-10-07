@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <stdexcept>
 
 namespace lld::parking_lot {
@@ -34,10 +35,19 @@ public:
             throw std::invalid_argument("exit time cannot precede entry time");
         }
 
+        using Rep = TimePoint::duration::rep;
+        const auto entry_ticks = entered_at.time_since_epoch().count();
+        const auto exit_ticks = exited_at.time_since_epoch().count();
+        if (entry_ticks < 0 && exit_ticks > std::numeric_limits<Rep>::max() + entry_ticks) {
+            throw std::overflow_error("session duration overflow");
+        }
         const auto elapsed = exited_at - entered_at;
         const auto rounded = std::chrono::ceil<std::chrono::hours>(elapsed).count();
+        if (rounded > std::numeric_limits<int>::max() / cents_per_hour_) {
+            throw std::overflow_error("fee exceeds integer cents range");
+        }
         const int hours = std::max(1, static_cast<int>(rounded));
-        return PricingQuote{.charged_hours = hours, .fee_cents = hours * cents_per_hour_};
+        return PricingQuote{hours, hours * cents_per_hour_};
     }
 
 private:
