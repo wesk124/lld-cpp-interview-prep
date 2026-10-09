@@ -14,7 +14,7 @@ For a parking lot, useful questions include:
 
 ## 2. Identify behavior, not just nouns
 
-Start from use cases. Assign each behavior to the object with the information required to perform it. Avoid turning every noun into a class.
+Start from use cases. Assign each behavior to the object with the information required to perform it. Behaviors and invariants help decide which nouns deserve their own classes.
 
 State important invariants:
 
@@ -24,13 +24,13 @@ State important invariants:
 
 ## 3. Make ownership explicit
 
-For every relationship, say whether it is ownership, observation, or identification. Prefer values and `std::unique_ptr` for exclusive ownership. Use `std::shared_ptr` only when the domain genuinely has shared lifetime ownership. Stable IDs often avoid dangling cross-object pointers.
+For every relationship, say whether it is ownership, observation, or identification. Values and `std::unique_ptr` express exclusive ownership; `std::shared_ptr` expresses shared lifetime ownership. Stable IDs often avoid dangling cross-object pointers.
 
 ## 4. Isolate expected change
 
 Introduce an interface when a requirement is expected to vary. Pricing is a good Strategy candidate because hourly, weekend, event, and membership policies can change independently of parking allocation.
 
-Do not add patterns speculatively. Be able to finish this sentence:
+An abstraction is easier to justify when you can finish this sentence:
 
 > This abstraction isolates changes to ____ from ____.
 
@@ -50,4 +50,4 @@ Discuss:
 
 ## C++ signals interviewers notice
 
-Use `enum class`, `const`, `explicit`, `override`, RAII, value semantics, and virtual destructors appropriately. Explain why an object is owned by value, `std::unique_ptr`, reference, or stable ID. Avoid raw owning pointers, object slicing, global mutable state, and `std::shared_ptr` by default.
+`enum class`, `const`, `explicit`, `override`, RAII, value semantics, and virtual destructors can help express a design. Explain the lifetime and ownership behind values, smart pointers, references, and stable IDs, and discuss risks such as slicing or unintended shared state.

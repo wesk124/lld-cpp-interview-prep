@@ -24,7 +24,7 @@ One in-memory catalog, no warehouses, prices, shipment, payment, persistence, or
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
-## Run your attempt (C++17)
+## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
 

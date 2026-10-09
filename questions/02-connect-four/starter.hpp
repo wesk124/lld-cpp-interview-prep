@@ -1,7 +1,8 @@
 #pragma once
 #include <stdexcept>
 #include <string>
-namespace lld::connect_four {
+namespace lld {
+namespace connect_four {
 enum class Cell { empty, red, yellow };
 enum class Status { playing, red_won, yellow_won, draw };
 struct Move { int row; int column; Cell player; Status status; };
@@ -21,4 +22,5 @@ private:
     // TODO: Choose board storage, move count, turn, and terminal state.
     // TODO: Count contiguous matching pieces on both sides of the latest move.
 };
-}  // namespace lld::connect_four
+}  // namespace connect_four
+}  // namespace lld

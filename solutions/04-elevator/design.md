@@ -1,4 +1,4 @@
-# Elevator: Reference Design (C++17)
+# Elevator: Reference Design
 
 [Question](../../questions/04-elevator/README.md) · [Tests](tests.cpp)
 

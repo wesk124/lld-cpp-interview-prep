@@ -1,4 +1,4 @@
-# Movie Ticket Booking: Reference Design (C++17)
+# Movie Ticket Booking: Reference Design
 
 [Question](../../questions/06-movie-ticket-booking/README.md) · [Tests](tests.cpp)
 
@@ -10,7 +10,7 @@ The lifecycle is held → booked, cancelled, or expired. Terminal records are re
 
 An injected monotonic clock and exact >= deadline rule make expiration deterministic. Expiry only processes records still in held state, so stale holds cannot free newer reservations.
 
-Multi-seat hold checks every seat first, allocates the hold record, then publishes integer ownership IDs. Confirmation builds the returned Booking value before committing state.
+Optional hold and booking snapshots use the small [C++11 helper](../../common/optional.hpp), which owns its value independently of the ledger. Multi-seat hold checks every seat first, allocates the result and hold record, then publishes integer ownership IDs. Confirmation builds the returned Booking value before committing state.
 
 A timed operation scans H hold records and releases affected seats. Holding K seats adds O(K log K + log H), listing capacity O(S), space O(S + retained hold-seat history).
 

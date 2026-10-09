@@ -1,4 +1,4 @@
-# Logging Service: Reference Design (C++17)
+# Logging Service: Reference Design
 
 [Question](../../questions/07-logging-service/README.md) · [Tests](tests.cpp)
 

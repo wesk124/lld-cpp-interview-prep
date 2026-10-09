@@ -2,7 +2,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace lld::file_system {
+namespace lld {
+namespace file_system {
 [[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
 class FileSystem {
 public:
@@ -22,4 +23,5 @@ private:
     // TODO: Parse absolute paths; normalize repeated slashes; reject . and ..
     // TODO: Keep all mutation confined to the in-memory tree, not the host OS.
 };
-}  // namespace lld::file_system
+}  // namespace file_system
+}  // namespace lld

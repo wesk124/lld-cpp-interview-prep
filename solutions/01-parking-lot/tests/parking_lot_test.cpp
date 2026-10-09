@@ -10,13 +10,13 @@
 #include <thread>
 
 using namespace lld::parking_lot;
-using namespace std::chrono_literals;
 
-ParkingLot make_lot() {
-    return ParkingLot({ParkingSpot("M-1", SpotType::motorcycle),
-                       ParkingSpot("C-1", SpotType::compact),
-                       ParkingSpot("L-1", SpotType::large)},
-                      std::make_unique<HourlyPricingPolicy>(500));
+std::unique_ptr<ParkingLot> make_lot() {
+    std::vector<ParkingSpot> spots{ParkingSpot("M-1", SpotType::motorcycle),
+                                   ParkingSpot("C-1", SpotType::compact),
+                                   ParkingSpot("L-1", SpotType::large)};
+    return std::unique_ptr<ParkingLot>(new ParkingLot(
+        std::move(spots), std::unique_ptr<PricingPolicy>(new HourlyPricingPolicy(500))));
 }
 
 class FlatPricing final : public PricingPolicy {
@@ -31,7 +31,8 @@ public:
 int main() {
     test::Suite suite;
     suite.run("smallest compatible allocation", [] {
-        auto lot = make_lot();
+        auto owner = make_lot();
+        auto& lot = *owner;
         auto motorcycle = lot.park({"m", VehicleType::motorcycle}, TimePoint{});
         auto car = lot.park({"c", VehicleType::car}, TimePoint{});
         auto truck = lot.park({"t", VehicleType::truck}, TimePoint{});
@@ -41,7 +42,8 @@ int main() {
         CHECK(lot.available_spots() == 0);
     });
     suite.run("larger spot fallback and compatible capacity", [] {
-        auto lot = make_lot();
+        auto owner = make_lot();
+        auto& lot = *owner;
         CHECK(lot.park({"c1", VehicleType::car}, TimePoint{}));
         auto second = lot.park({"c2", VehicleType::car}, TimePoint{});
         CHECK(second && second->spot_id == "L-1");
@@ -49,64 +51,68 @@ int main() {
         CHECK(lot.available_spots() == 1);
     });
     suite.run("duplicate active plate rejected", [] {
-        auto lot = make_lot();
+        auto owner = make_lot();
+        auto& lot = *owner;
         CHECK(lot.park({"same", VehicleType::car}, TimePoint{}));
         CHECK(!lot.park({"same", VehicleType::car}, TimePoint{}));
     });
     suite.run("partial-hour billing, release, and single-use ticket", [] {
-        auto lot = make_lot();
+        auto owner = make_lot();
+        auto& lot = *owner;
         auto ticket = lot.park({"car", VehicleType::car}, TimePoint{});
         CHECK(ticket);
-        auto receipt = lot.exit(ticket->id, TimePoint{} + 61min);
+        auto receipt = lot.exit(ticket->id, TimePoint{} + std::chrono::minutes(61));
         CHECK(receipt && receipt->charged_hours == 2 && receipt->fee_cents == 1000);
         CHECK(lot.available_spots() == 3);
-        CHECK(!lot.exit(ticket->id, TimePoint{} + 62min));
-        CHECK(lot.park({"car", VehicleType::car}, TimePoint{} + 62min));
+        CHECK(!lot.exit(ticket->id, TimePoint{} + std::chrono::minutes(62)));
+        CHECK(lot.park({"car", VehicleType::car}, TimePoint{} + std::chrono::minutes(62)));
     });
     suite.run("minimum and exact-hour billing", [] {
         HourlyPricingPolicy policy(500);
         CHECK(policy.calculate(TimePoint{}, TimePoint{}).fee_cents == 500);
-        CHECK(policy.calculate(TimePoint{}, TimePoint{} + 1h).fee_cents == 500);
-        CHECK(policy.calculate(TimePoint{}, TimePoint{} + 1h + TimePoint::duration{1}).fee_cents == 1000);
+        CHECK(policy.calculate(TimePoint{}, TimePoint{} + std::chrono::hours(1)).fee_cents == 500);
+        CHECK(policy.calculate(TimePoint{}, TimePoint{} + std::chrono::hours(1) + TimePoint::duration{1}).fee_cents == 1000);
     });
     suite.run("invalid checkout time leaves session active", [] {
-        auto lot = make_lot();
-        auto ticket = lot.park({"car", VehicleType::car}, TimePoint{} + 1h);
+        auto owner = make_lot();
+        auto& lot = *owner;
+        auto ticket = lot.park({"car", VehicleType::car}, TimePoint{} + std::chrono::hours(1));
         CHECK(ticket);
         EXPECT_THROW(std::invalid_argument, lot.exit(ticket->id, TimePoint{}));
         CHECK(lot.available_spots() == 2);
-        CHECK(lot.exit(ticket->id, TimePoint{} + 2h));
+        CHECK(lot.exit(ticket->id, TimePoint{} + std::chrono::hours(2)));
     });
     suite.run("pricing strategy does not alter allocation", [] {
-        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<FlatPricing>());
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::unique_ptr<PricingPolicy>(new FlatPricing()));
         auto ticket = lot.park({"truck", VehicleType::truck}, TimePoint{});
         CHECK(ticket);
-        auto receipt = lot.exit(ticket->id, TimePoint{} + 10h);
+        auto receipt = lot.exit(ticket->id, TimePoint{} + std::chrono::hours(10));
         CHECK(receipt && receipt->fee_cents == 200);
     });
     suite.run("pricing failure cannot release a spot", [] {
-        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<FailingPricing>());
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::unique_ptr<PricingPolicy>(new FailingPricing()));
         auto ticket = lot.park({"truck", VehicleType::truck}, TimePoint{});
         CHECK(ticket);
-        EXPECT_THROW(std::runtime_error, lot.exit(ticket->id, TimePoint{} + 1h));
+        EXPECT_THROW(std::runtime_error, lot.exit(ticket->id, TimePoint{} + std::chrono::hours(1)));
         CHECK(lot.available_spots() == 0);
         CHECK(!lot.park({"truck", VehicleType::truck}, TimePoint{}));
     });
     suite.run("constructor and vehicle validation", [] {
         EXPECT_THROW(std::invalid_argument,
                      ParkingLot({ParkingSpot("same", SpotType::large), ParkingSpot("same", SpotType::large)},
-                                std::make_unique<HourlyPricingPolicy>(500)));
-        auto lot = make_lot();
+                                std::unique_ptr<PricingPolicy>(new HourlyPricingPolicy(500))));
+        auto owner = make_lot();
+        auto& lot = *owner;
         EXPECT_THROW(std::invalid_argument, lot.park({"", VehicleType::car}, TimePoint{}));
         CHECK(!lot.exit("unknown", TimePoint{}));
     });
     suite.run("fee and duration overflow are rejected", [] {
         HourlyPricingPolicy policy(std::numeric_limits<int>::max());
-        EXPECT_THROW(std::overflow_error, policy.calculate(TimePoint{}, TimePoint{} + 2h));
+        EXPECT_THROW(std::overflow_error, policy.calculate(TimePoint{}, TimePoint{} + std::chrono::hours(2)));
         EXPECT_THROW(std::overflow_error, policy.calculate(TimePoint::min(), TimePoint::max()));
     });
     suite.run("concurrent parks cannot overfill", [] {
-        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::make_unique<HourlyPricingPolicy>(500));
+        ParkingLot lot({ParkingSpot("a", SpotType::large)}, std::unique_ptr<PricingPolicy>(new HourlyPricingPolicy(500)));
         std::atomic<int> accepted{0};
         std::vector<std::thread> threads;
         for (int i = 0; i < 8; ++i) {

@@ -1,6 +1,6 @@
 # C++ Low-Level Design Interview Prep
 
-A public, code-first collection for learning and practicing low-level design (LLD) interviews in **C++17**. Standard-library dependencies only: no C++20 features, external test framework, or `bits/stdc++.h`.
+A public, code-first collection for learning and practicing low-level design (LLD) interviews. The examples and build scripts use **C++11** and the standard library.
 
 Each of the nine examples has a question with interviewee TODOs, an explained reference implementation, deterministic behavioral tests, and related quiz questions. These are focused interview exercises, not production-ready services.
 
@@ -30,7 +30,7 @@ The starter headers compile, but intentionally throw TODO errors. **Reference te
 
 ## Build and test all reference solutions
 
-Requirements: a C++17 compiler (GCC, Clang/Apple Clang, or MSVC) and CMake 3.20+.
+The CMake build uses C++11 and CMake 3.20+. A direct compiler script is also available below.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -76,7 +76,7 @@ Use `CXX=clang++` to select Clang in the shell script. For compiler environments
 - [C++ LLD foundations](quizzes/questions.md) → [answers](quizzes/solutions.md)
 - [Nine-example scenario quiz](quizzes/examples-questions.md) → [answers](quizzes/examples-solutions.md)
 
-Keep answer files closed until you commit to your response. Explain why an alternative would fail, not just which pattern name applies.
+Try answering before opening the explanations, then discuss the tradeoffs behind each choice.
 
 ## Six-week study plan
 
@@ -94,7 +94,7 @@ Keep answer files closed until you commit to your response. Explain why an alter
 - `questions/`: prompts, contracts, TODO-based runnable starter headers, and test plans
 - `solutions/`: reference code, design explanations, and behavioral tests
 - `quizzes/`: knowledge and scenario questions with separate answer keys
-- `common/`: tiny test harness; no assertions that disappear in release builds
+- `common/`: test harness and a small optional-value helper
 - `docs/`: [interview playbook](docs/interview-playbook.md) and [review rubric](docs/review-checklist.md)
 - `templates/`: reusable requirements and retrospective notes
 

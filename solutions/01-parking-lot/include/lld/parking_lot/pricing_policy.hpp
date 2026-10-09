@@ -7,7 +7,8 @@
 #include <limits>
 #include <stdexcept>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 
 struct PricingQuote {
     int charged_hours;
@@ -17,7 +18,7 @@ struct PricingQuote {
 class PricingPolicy {
 public:
     virtual ~PricingPolicy() = default;
-    [[nodiscard]] virtual PricingQuote calculate(TimePoint entered_at,
+    virtual PricingQuote calculate(TimePoint entered_at,
                                                  TimePoint exited_at) const = 0;
 };
 
@@ -29,7 +30,7 @@ public:
         }
     }
 
-    [[nodiscard]] PricingQuote calculate(TimePoint entered_at,
+    PricingQuote calculate(TimePoint entered_at,
                                          TimePoint exited_at) const override {
         if (exited_at < entered_at) {
             throw std::invalid_argument("exit time cannot precede entry time");
@@ -42,7 +43,8 @@ public:
             throw std::overflow_error("session duration overflow");
         }
         const auto elapsed = exited_at - entered_at;
-        const auto rounded = std::chrono::ceil<std::chrono::hours>(elapsed).count();
+        const auto whole_hours = std::chrono::duration_cast<std::chrono::hours>(elapsed);
+        const auto rounded = whole_hours.count() + (elapsed > whole_hours ? 1 : 0);
         if (rounded > std::numeric_limits<int>::max() / cents_per_hour_) {
             throw std::overflow_error("fee exceeds integer cents range");
         }
@@ -54,4 +56,5 @@ private:
     int cents_per_hour_;
 };
 
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld

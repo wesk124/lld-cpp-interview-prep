@@ -8,7 +8,8 @@
 #include <stdexcept>
 #include <string>
 
-namespace lld::rate_limiter {
+namespace lld {
+namespace rate_limiter {
 
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
@@ -60,4 +61,5 @@ private:
     std::map<std::string, Bucket> buckets_;
 };
 
-}  // namespace lld::rate_limiter
+}  // namespace rate_limiter
+}  // namespace lld

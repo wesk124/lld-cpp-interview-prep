@@ -5,7 +5,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace lld::logging_service {
+namespace lld {
+namespace logging_service {
 using TimePoint = std::chrono::system_clock::time_point;
 enum class Level { debug = 0, info = 1, warning = 2, error = 3 };
 struct Record { TimePoint timestamp; Level level; std::string message; };
@@ -38,4 +39,5 @@ private:
     // TODO: Document lifetime ownership and per-sink synchronization.
     // TODO: Do not promise a global record order across multiple producers/sinks.
 };
-}  // namespace lld::logging_service
+}  // namespace logging_service
+}  // namespace lld

@@ -10,7 +10,6 @@
 #include <vector>
 
 using namespace lld::rate_limiter;
-using namespace std::chrono_literals;
 
 int main() {
     test::Suite suite;
@@ -22,14 +21,14 @@ int main() {
     suite.run("fractional refill reaches an exact boundary", [] {
         TokenBucketLimiter limiter(1, 2.0);
         CHECK(limiter.allow("a", TimePoint{}));
-        CHECK(!limiter.allow("a", TimePoint{} + 250ms));
-        CHECK(limiter.allow("a", TimePoint{} + 500ms));
+        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::milliseconds(250)));
+        CHECK(limiter.allow("a", TimePoint{} + std::chrono::milliseconds(500)));
     });
     suite.run("refill is capped at burst capacity", [] {
         TokenBucketLimiter limiter(2, 1.0);
         CHECK(limiter.allow("a", TimePoint{}, 2));
-        CHECK(limiter.allow("a", TimePoint{} + 1h, 2));
-        CHECK(!limiter.allow("a", TimePoint{} + 1h));
+        CHECK(limiter.allow("a", TimePoint{} + std::chrono::hours(1), 2));
+        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::hours(1)));
     });
     suite.run("weighted requests do not borrow future tokens", [] {
         TokenBucketLimiter limiter(4, 1.0);
@@ -46,9 +45,9 @@ int main() {
     });
     suite.run("clock rollback rejected without granting tokens", [] {
         TokenBucketLimiter limiter(1, 1.0);
-        CHECK(limiter.allow("a", TimePoint{} + 10s));
-        EXPECT_THROW(std::invalid_argument, limiter.allow("a", TimePoint{} + 9s));
-        CHECK(!limiter.allow("a", TimePoint{} + 10s));
+        CHECK(limiter.allow("a", TimePoint{} + std::chrono::seconds(10)));
+        EXPECT_THROW(std::invalid_argument, limiter.allow("a", TimePoint{} + std::chrono::seconds(9)));
+        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::seconds(10)));
     });
     suite.run("configuration and request validation", [] {
         EXPECT_THROW(std::invalid_argument, TokenBucketLimiter(0, 1.0));

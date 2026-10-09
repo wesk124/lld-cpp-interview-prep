@@ -1,4 +1,4 @@
-# Amazon Locker: Reference Design (C++17)
+# Amazon Locker: Reference Design
 
 [Question](../../questions/03-amazon-locker/README.md) · [Tests](tests.cpp)
 
@@ -8,7 +8,7 @@ Slot describes stable capacity; Assignment records one active package session; L
 
 Slots and assignment records are owned values. A supplied std::function creates codes; security is an external concern, not a claim about the deterministic test generator.
 
-Deposit stages the result and map entry before publishing occupancy. One mutex covers allocation, assignment validity, pickup, and collection.
+Optional results use the small [C++11 helper](../../common/optional.hpp), which owns its value and returns an empty result when a request cannot be fulfilled. Deposit stages the result and map entry before publishing occupancy. One mutex covers allocation, assignment validity, pickup, and collection.
 
 Expiry revokes customer pickup but does not remove a physical package. Only courier collection frees expired occupied slots.
 

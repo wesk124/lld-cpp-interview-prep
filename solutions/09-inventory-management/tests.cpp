@@ -5,6 +5,7 @@
 #endif
 #include "test_support.hpp"
 #include <atomic>
+#include <limits>
 #include <thread>
 #include <vector>
 

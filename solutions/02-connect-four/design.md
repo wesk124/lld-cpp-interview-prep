@@ -1,4 +1,4 @@
-# Connect Four: Reference Design (C++17)
+# Connect Four: Reference Design
 
 [Question](../../questions/02-connect-four/README.md) · [Tests](tests.cpp)
 

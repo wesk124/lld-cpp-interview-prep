@@ -1,4 +1,4 @@
-# Interview Questions (C++17)
+# Interview Questions
 
 Every starter has an explicit public contract and marked TODOs. Implement your own state and behavior before inspecting `solutions/`.
 

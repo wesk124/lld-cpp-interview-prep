@@ -3,7 +3,8 @@
 #include <chrono>
 #include <string>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 
 using TimePoint = std::chrono::system_clock::time_point;
 
@@ -32,4 +33,5 @@ struct Receipt {
     int fee_cents;
 };
 
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld

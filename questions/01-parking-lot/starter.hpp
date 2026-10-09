@@ -1,12 +1,13 @@
 #pragma once
 #include <chrono>
 #include <memory>
-#include <optional>
+#include "optional.hpp"
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 using TimePoint = std::chrono::system_clock::time_point;
 enum class VehicleType { motorcycle, car, truck };
 enum class SpotType { motorcycle, compact, large };
@@ -42,14 +43,15 @@ public:
     ParkingLot(std::vector<ParkingSpot> /*spots*/, std::unique_ptr<PricingPolicy> /*policy*/) {
         todo("own spots and a pricing strategy; reject invalid configurations");
     }
-    std::optional<Ticket> park(const Vehicle& /*vehicle*/, TimePoint /*entered_at*/) {
+    lld::Optional<Ticket> park(const Vehicle& /*vehicle*/, TimePoint /*entered_at*/) {
         todo("allocate atomically, reject duplicate plates, and create a stable ticket");
     }
-    std::optional<Receipt> exit(const std::string& /*ticket_id*/, TimePoint /*exited_at*/) {
+    lld::Optional<Receipt> exit(const std::string& /*ticket_id*/, TimePoint /*exited_at*/) {
         todo("validate and price before atomically releasing the session");
     }
     std::size_t available_spots() const { todo("return a synchronized capacity snapshot"); }
 private:
     // TODO: Define owned state, indexes, ticket sequence, and the lock boundary.
 };
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld

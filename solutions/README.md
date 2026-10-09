@@ -1,4 +1,4 @@
-# Reference Solutions (C++17)
+# Reference Solutions
 
 These are interview-sized designs, not canonical answers or production systems. Compare responsibilities, ownership, invariants, and tradeoffs—not merely class names.
 

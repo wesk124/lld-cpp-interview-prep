@@ -50,7 +50,7 @@ int main() {
         CHECK(car.snapshot().pending.empty());
     });
     suite.run("nearest-car dispatch and internal button", [] {
-        ElevatorBank bank(10, {0, 8}, std::make_unique<NearestCarPolicy>());
+        ElevatorBank bank(10, {0, 8}, std::unique_ptr<DispatchPolicy>(new NearestCarPolicy()));
         CHECK(bank.request(7, Direction::down) == 1);
         auto state = bank.step_all();
         CHECK(state[1].floor == 7 && state[1].door == Door::open);
@@ -58,14 +58,14 @@ int main() {
         CHECK(bank.snapshots()[1].pending.front() == 2);
     });
     suite.run("nearest-car ties use smallest index", [] {
-        ElevatorBank bank(10, {2, 6}, std::make_unique<NearestCarPolicy>());
+        ElevatorBank bank(10, {2, 6}, std::unique_ptr<DispatchPolicy>(new NearestCarPolicy()));
         CHECK(bank.request(4, Direction::up) == 0);
     });
     suite.run("invalid floors and hall directions", [] {
         EXPECT_THROW(std::invalid_argument, Elevator(0));
         Elevator car(10);
         EXPECT_THROW(std::out_of_range, car.request_stop(11));
-        ElevatorBank bank(10, {0}, std::make_unique<NearestCarPolicy>());
+        ElevatorBank bank(10, {0}, std::unique_ptr<DispatchPolicy>(new NearestCarPolicy()));
         EXPECT_THROW(std::invalid_argument, bank.request(0, Direction::down));
         EXPECT_THROW(std::out_of_range, bank.select_floor(4, 3));
     });

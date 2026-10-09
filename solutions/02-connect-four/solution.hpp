@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <vector>
 
-namespace lld::connect_four {
+namespace lld {
+namespace connect_four {
 
 enum class Cell { empty, red, yellow };
 enum class Status { playing, red_won, yellow_won, draw };
@@ -99,4 +100,5 @@ private:
     Status status_{Status::playing};
 };
 
-}  // namespace lld::connect_four
+}  // namespace connect_four
+}  // namespace lld

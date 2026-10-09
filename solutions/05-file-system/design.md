@@ -1,4 +1,4 @@
-# File System: Reference Design (C++17)
+# File System: Reference Design
 
 [Question](../../questions/05-file-system/README.md) · [Tests](tests.cpp)
 

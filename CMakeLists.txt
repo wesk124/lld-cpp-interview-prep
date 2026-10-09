@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 project(lld_cpp_interview_prep LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(LLD_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-option(LLD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
+option(LLD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 set(LLD_PRACTICE_EXAMPLE "" CACHE STRING "Question directory to build as practice_tests")
 
 find_package(Threads REQUIRED)
 add_library(lld_project_options INTERFACE)
-target_compile_features(lld_project_options INTERFACE cxx_std_17)
+target_compile_features(lld_project_options INTERFACE cxx_std_11)
+target_include_directories(lld_project_options INTERFACE ${PROJECT_SOURCE_DIR}/common)
 
 if(MSVC)
     target_compile_options(lld_project_options INTERFACE /W4 /permissive-)
@@ -32,6 +33,9 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
+add_executable(optional_tests common/optional_tests.cpp)
+target_link_libraries(optional_tests PRIVATE lld_project_options)
+add_test(NAME optional_tests COMMAND optional_tests)
 add_subdirectory(solutions/01-parking-lot)
 
 function(lld_add_example directory target)

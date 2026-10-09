@@ -1,11 +1,12 @@
 #pragma once
 #include <chrono>
 #include <cstdint>
-#include <optional>
+#include "optional.hpp"
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace lld::movie_ticket_booking {
+namespace lld {
+namespace movie_ticket_booking {
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 using HoldId = std::uint64_t;
@@ -21,12 +22,12 @@ public:
     void add_show(std::string /*id*/, std::string /*movie*/, int /*seat_count*/) {
         todo("create a show with initially available zero-based seats");
     }
-    std::optional<Hold> hold(const std::string& /*show*/, const std::string& /*customer*/,
+    lld::Optional<Hold> hold(const std::string& /*show*/, const std::string& /*customer*/,
                             const std::vector<int>& /*seats*/, TimePoint /*now*/,
                             std::chrono::seconds /*ttl*/) {
         todo("validate all seats before reserving any; reject conflicts atomically");
     }
-    std::optional<Booking> confirm(HoldId /*id*/, TimePoint /*now*/) {
+    lld::Optional<Booking> confirm(HoldId /*id*/, TimePoint /*now*/) {
         todo("expire stale holds, then confirm idempotently");
     }
     bool cancel(HoldId /*id*/, TimePoint /*now*/) {
@@ -39,4 +40,5 @@ private:
     // TODO: Own show seat state and the hold lifecycle ledger under one mutex.
     // TODO: A stale hold must never free a seat now owned by another hold.
 };
-}  // namespace lld::movie_ticket_booking
+}  // namespace movie_ticket_booking
+}  // namespace lld

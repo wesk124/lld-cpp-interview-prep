@@ -7,7 +7,8 @@
 #include <string>
 #include <utility>
 
-namespace lld::inventory_management {
+namespace lld {
+namespace inventory_management {
 
 struct Stock {
     int on_hand;
@@ -102,4 +103,5 @@ private:
     std::map<std::string, Reservation> reservations_;
 };
 
-}  // namespace lld::inventory_management
+}  // namespace inventory_management
+}  // namespace lld

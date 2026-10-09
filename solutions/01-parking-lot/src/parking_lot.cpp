@@ -5,7 +5,8 @@
 #include <stdexcept>
 #include <utility>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 namespace {
 
 int spot_rank(SpotType type) {
@@ -36,19 +37,19 @@ ParkingLot::ParkingLot(std::vector<ParkingSpot> spots,
     }
 }
 
-std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered_at) {
+lld::Optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered_at) {
     if (vehicle.license_plate.empty()) {
         throw std::invalid_argument("license plate is required");
     }
 
     const std::lock_guard<std::mutex> lock(mutex_);
     if (active_license_plates_.count(vehicle.license_plate) != 0) {
-        return std::nullopt;
+        return {};
     }
 
     ParkingSpot* spot = find_best_spot(vehicle.type);
     if (spot == nullptr) {
-        return std::nullopt;
+        return {};
     }
 
     if (next_ticket_number_ == std::numeric_limits<unsigned long long>::max()) {
@@ -56,6 +57,7 @@ std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered
     }
     Ticket ticket{"T-" + std::to_string(next_ticket_number_), vehicle.license_plate,
                   spot->id(), entered_at};
+    lld::Optional<Ticket> result(ticket);  // Allocate the returned snapshot before committing.
     active_tickets_.emplace(ticket.id, ticket);
     try {
         active_license_plates_.insert(vehicle.license_plate);
@@ -70,14 +72,14 @@ std::optional<Ticket> ParkingLot::park(const Vehicle& vehicle, TimePoint entered
         throw;
     }
     ++next_ticket_number_;
-    return std::optional<Ticket>(std::move(ticket));
+    return result;
 }
 
-std::optional<Receipt> ParkingLot::exit(const std::string& ticket_id, TimePoint exited_at) {
+lld::Optional<Receipt> ParkingLot::exit(const std::string& ticket_id, TimePoint exited_at) {
     const std::lock_guard<std::mutex> lock(mutex_);
     const auto ticket_it = active_tickets_.find(ticket_id);
     if (ticket_it == active_tickets_.end()) {
-        return std::nullopt;
+        return {};
     }
 
     const Ticket ticket = ticket_it->second;
@@ -97,12 +99,13 @@ std::optional<Receipt> ParkingLot::exit(const std::string& ticket_id, TimePoint 
     }
     Receipt receipt{ticket.id, ticket.license_plate, ticket.spot_id, ticket.entered_at,
                     exited_at, quote.charged_hours, quote.fee_cents};
+    lld::Optional<Receipt> result(std::move(receipt));
 
     spot_it->vacate();
     active_license_plates_.erase(ticket.license_plate);
     active_tickets_.erase(ticket_it);
 
-    return std::optional<Receipt>(std::move(receipt));
+    return result;
 }
 
 std::size_t ParkingLot::available_spots() const {
@@ -124,4 +127,5 @@ ParkingSpot* ParkingLot::find_best_spot(VehicleType vehicle_type) {
     return best;
 }
 
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld

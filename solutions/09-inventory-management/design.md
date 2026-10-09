@@ -1,4 +1,4 @@
-# Inventory Management: Reference Design (C++17)
+# Inventory Management: Reference Design
 
 [Question](../../questions/09-inventory-management/README.md) · [Tests](tests.cpp)
 

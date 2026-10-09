@@ -2,7 +2,8 @@
 #include <chrono>
 #include <stdexcept>
 #include <string>
-namespace lld::rate_limiter {
+namespace lld {
+namespace rate_limiter {
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 [[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
@@ -19,4 +20,5 @@ private:
     // TODO: Own per-client tokens and last-refill timestamps.
     // TODO: Reject backward client time and cap accumulated tokens at capacity.
 };
-}  // namespace lld::rate_limiter
+}  // namespace rate_limiter
+}  // namespace lld

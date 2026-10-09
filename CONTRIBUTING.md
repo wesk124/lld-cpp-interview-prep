@@ -1,27 +1,23 @@
 # Contributing
 
-Contributions should teach design reasoning, not just add code. All code targets **C++17**, uses the standard library, and must compile with GCC and Clang/Apple Clang. Do not introduce C++20 features or `bits/stdc++.h`.
+Contributions, alternative designs, and explanations of tradeoffs are welcome.
 
-## Adding a problem
+## Repository layout
 
-Add matching numbered directories under `questions/` and `solutions/`:
+Each example pairs a question in `questions/` with a reference implementation in `solutions/`. The question includes a prompt, TODO starter, and test plan; the solution includes code, a design explanation, and behavioral tests. Quiz questions and their answers live in separate files under `quizzes/`.
 
-- Question: README with clear contracts, TODO-based `starter.hpp`, and `test_plan.md`.
-- Solution: design explanation, focused C++17 implementation, and behavioral tests.
-- Tests: include `starter.hpp` when `LLD_PRACTICE` is set; otherwise include the reference code.
-- Register the reference target and practice directory in root CMake and `scripts/test.sh`.
-- Update both indexes and add scenario questions with separate answers.
+The existing build targets select the TODO starter when `LLD_PRACTICE` is set and the reference implementation otherwise. Root CMake and `scripts/test.sh` list the available examples.
 
-Use `common/test_support.hpp` rather than `assert`, so checks also run in release builds. Tests must not depend on wall-clock sleeps. Add contention tests for shared-state invariants without assuming thread scheduling order.
+## Running the tests
 
-## Verify before submitting
+The current build scripts use C++11. To run the reference tests:
 
 ```bash
-cmake -S . -B build -DLLD_ENABLE_SANITIZERS=ON
+cmake -S . -B build
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Without CMake: `bash scripts/test.sh`. Also verify that the starter compiles independently with `bash scripts/test.sh <directory-name> practice`; TODO failures are expected until completed.
+The direct-build alternative is `bash scripts/test.sh`. For a practice attempt, use `bash scripts/test.sh <directory-name> practice`; the unfinished starters intentionally fail with TODO errors.
 
-Explain which source of change an abstraction isolates, which state each lock protects, and what the example intentionally excludes. Never claim production security, durability, or race freedom solely from passing sample tests.
+A contribution description can explain the design choices, example behavior, and validation performed.

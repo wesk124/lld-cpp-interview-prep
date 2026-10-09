@@ -4,14 +4,15 @@
 #include <functional>
 #include <map>
 #include <mutex>
-#include <optional>
+#include "optional.hpp"
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace lld::amazon_locker {
+namespace lld {
+namespace amazon_locker {
 
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
@@ -41,7 +42,7 @@ public:
         }
     }
 
-    std::optional<Assignment> deposit(const std::string& package_id, Size size, TimePoint now,
+    lld::Optional<Assignment> deposit(const std::string& package_id, Size size, TimePoint now,
                                        std::chrono::seconds ttl) {
         if (package_id.empty() || !valid_size(size) || ttl.count() <= 0 || ttl > std::chrono::hours(24)) {
             throw std::invalid_argument("invalid package, size, or TTL (1 second to 24 hours)");
@@ -51,35 +52,35 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         check_time(now);
         for (const auto& entry : assignments_) {
-            if (entry.second.package_id == package_id) { return std::nullopt; }
+            if (entry.second.package_id == package_id) { return {}; }
         }
-        std::optional<std::size_t> best;
+        std::size_t best = slots_.size();
         for (std::size_t i = 0; i < slots_.size(); ++i) {
             if (codes_[i].empty() && static_cast<int>(slots_[i].size) >= static_cast<int>(size) &&
-                (!best || slots_[i].size < slots_[*best].size)) {
+                (best == slots_.size() || slots_[i].size < slots_[best].size)) {
                 best = i;
             }
         }
-        if (!best) { return std::nullopt; }
+        if (best == slots_.size()) { return {}; }
         std::string code = code_generator_();
         if (code.empty() || assignments_.count(code) != 0) {
             throw std::logic_error("generator returned empty or duplicate active code");
         }
-        Assignment result{package_id, slots_[*best].id, code, now, now + duration};
-        assignments_.emplace(code, result);  // Finish allocations before publishing occupancy.
-        codes_[*best] = std::move(code);
-        return std::optional<Assignment>(std::move(result));
+        lld::Optional<Assignment> result(Assignment{package_id, slots_[best].id, code, now, now + duration});
+        assignments_.emplace(code, *result);  // Finish allocations before publishing occupancy.
+        codes_[best] = std::move(code);
+        return result;
     }
 
-    std::optional<std::string> pickup(const std::string& code, TimePoint now) {
+    lld::Optional<std::string> pickup(const std::string& code, TimePoint now) {
         std::lock_guard<std::mutex> lock(mutex_);
         check_time(now);
         const auto found = assignments_.find(code);
-        if (found == assignments_.end() || now >= found->second.expires_at) { return std::nullopt; }
-        std::string package_id = found->second.package_id;
+        if (found == assignments_.end() || now >= found->second.expires_at) { return {}; }
+        lld::Optional<std::string> package_id(found->second.package_id);
         clear_slot(code);
         assignments_.erase(found);
-        return std::optional<std::string>(std::move(package_id));
+        return package_id;
     }
 
     std::vector<std::string> collect_expired(TimePoint now) {
@@ -110,8 +111,9 @@ private:
         return size == Size::small || size == Size::medium || size == Size::large;
     }
     void check_time(TimePoint now) {
-        if (last_now_ && now < *last_now_) { throw std::invalid_argument("clock moved backwards"); }
+        if (has_last_now_ && now < last_now_) { throw std::invalid_argument("clock moved backwards"); }
         last_now_ = now;
+        has_last_now_ = true;
     }
     void clear_slot(const std::string& code) {
         for (auto& value : codes_) { if (value == code) { value.clear(); return; } }
@@ -123,7 +125,9 @@ private:
     std::vector<std::string> codes_;
     std::function<std::string()> code_generator_;
     std::map<std::string, Assignment> assignments_;
-    std::optional<TimePoint> last_now_;
+    TimePoint last_now_{};
+    bool has_last_now_{false};
 };
 
-}  // namespace lld::amazon_locker
+}  // namespace amazon_locker
+}  // namespace lld

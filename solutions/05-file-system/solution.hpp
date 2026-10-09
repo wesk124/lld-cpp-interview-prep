@@ -8,7 +8,8 @@
 #include <utility>
 #include <vector>
 
-namespace lld::file_system {
+namespace lld {
+namespace file_system {
 
 class Node {
 public:
@@ -37,7 +38,7 @@ public:
         for (const auto& part : parts) {
             auto it = current->children.find(part);
             if (it == current->children.end()) {
-                it = current->children.emplace(part, std::make_unique<Directory>()).first;
+                it = current->children.emplace(part, std::unique_ptr<Node>(new Directory())).first;
             }
             current = &as_directory(*it->second);
         }
@@ -52,7 +53,7 @@ public:
         if (it != parent.children.end() && it->second->is_directory()) {
             throw std::logic_error("cannot overwrite a directory");
         }
-        auto replacement = std::make_unique<File>(std::move(contents));
+        std::unique_ptr<Node> replacement(new File(std::move(contents)));
         if (it == parent.children.end()) {
             parent.children.emplace(parts.back(), std::move(replacement));
         } else {
@@ -141,4 +142,5 @@ private:
     Directory root_;
 };
 
-}  // namespace lld::file_system
+}  // namespace file_system
+}  // namespace lld

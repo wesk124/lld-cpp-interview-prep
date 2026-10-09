@@ -9,7 +9,8 @@
 #include <utility>
 #include <vector>
 
-namespace lld::elevator {
+namespace lld {
+namespace elevator {
 
 enum class Direction { idle, up, down };
 enum class Door { closed, open };
@@ -154,4 +155,5 @@ private:
     std::unique_ptr<DispatchPolicy> policy_;
 };
 
-}  // namespace lld::elevator
+}  // namespace elevator
+}  // namespace lld

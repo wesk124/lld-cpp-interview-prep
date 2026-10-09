@@ -1,11 +1,12 @@
 #pragma once
 #include <chrono>
 #include <functional>
-#include <optional>
+#include "optional.hpp"
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace lld::amazon_locker {
+namespace lld {
+namespace amazon_locker {
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 enum class Size { small = 0, medium = 1, large = 2 };
@@ -20,11 +21,11 @@ public:
     Locker(std::vector<Slot> /*slots*/, std::function<std::string()> /*code_generator*/) {
         todo("validate slots and own the injected pickup-code generator");
     }
-    std::optional<Assignment> deposit(const std::string& /*package_id*/, Size /*size*/,
+    lld::Optional<Assignment> deposit(const std::string& /*package_id*/, Size /*size*/,
                                       TimePoint /*now*/, std::chrono::seconds /*ttl*/) {
         todo("choose the smallest compatible slot and create one active assignment");
     }
-    std::optional<std::string> pickup(const std::string& /*code*/, TimePoint /*now*/) {
+    lld::Optional<std::string> pickup(const std::string& /*code*/, TimePoint /*now*/) {
         todo("validate an unexpired single-use code and release the slot");
     }
     std::vector<std::string> collect_expired(TimePoint /*now*/) {
@@ -35,4 +36,5 @@ private:
     // TODO: Maintain package/code/slot consistency across concurrent operations.
     // TODO: Reject non-monotonic time and duplicate active pickup codes.
 };
-}  // namespace lld::amazon_locker
+}  // namespace amazon_locker
+}  // namespace lld

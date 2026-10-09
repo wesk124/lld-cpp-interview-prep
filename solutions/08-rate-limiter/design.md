@@ -1,4 +1,4 @@
-# Rate Limiter: Reference Design (C++17)
+# Rate Limiter: Reference Design
 
 [Question](../../questions/08-rate-limiter/README.md) · [Tests](tests.cpp)
 

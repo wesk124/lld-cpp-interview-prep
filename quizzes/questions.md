@@ -1,6 +1,6 @@
 # C++ LLD Foundations Quiz
 
-Do not open the solution file until you have committed to each answer.
+Try answering each question before opening the explanations.
 
 ## Multiple choice
 

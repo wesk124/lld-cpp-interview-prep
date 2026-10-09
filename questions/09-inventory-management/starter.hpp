@@ -2,7 +2,8 @@
 #include <map>
 #include <stdexcept>
 #include <string>
-namespace lld::inventory_management {
+namespace lld {
+namespace inventory_management {
 struct Stock {
     int on_hand; int reserved;
     int available() const noexcept { return on_hand - reserved; }
@@ -24,4 +25,5 @@ private:
     // TODO: Preserve 0 <= reserved <= on_hand for every SKU.
     // TODO: Keep terminal order records so retries do not double-consume stock.
 };
-}  // namespace lld::inventory_management
+}  // namespace inventory_management
+}  // namespace lld

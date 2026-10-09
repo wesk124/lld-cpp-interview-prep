@@ -2,12 +2,13 @@
 
 #include "lld/parking_lot/types.hpp"
 
-#include <optional>
+#include "optional.hpp"
 #include <stdexcept>
 #include <string>
 #include <utility>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 
 class ParkingSpot {
 public:
@@ -18,14 +19,14 @@ public:
         }
     }
 
-    [[nodiscard]] const std::string& id() const noexcept { return id_; }
-    [[nodiscard]] SpotType type() const noexcept { return type_; }
-    [[nodiscard]] bool is_available() const noexcept { return !license_plate_.has_value(); }
-    [[nodiscard]] const std::optional<std::string>& license_plate() const noexcept {
+    const std::string& id() const noexcept { return id_; }
+    SpotType type() const noexcept { return type_; }
+    bool is_available() const noexcept { return !license_plate_.has_value(); }
+    const lld::Optional<std::string>& license_plate() const noexcept {
         return license_plate_;
     }
 
-    [[nodiscard]] bool accepts(VehicleType vehicle_type) const noexcept;
+    bool accepts(VehicleType vehicle_type) const noexcept;
 
     void occupy(const Vehicle& vehicle) {
         if (vehicle.license_plate.empty() || !is_available() || !accepts(vehicle.type)) {
@@ -44,7 +45,7 @@ public:
 private:
     std::string id_;
     SpotType type_;
-    std::optional<std::string> license_plate_;
+    lld::Optional<std::string> license_plate_;
 };
 
 inline bool ParkingSpot::accepts(VehicleType vehicle_type) const noexcept {
@@ -59,4 +60,5 @@ inline bool ParkingSpot::accepts(VehicleType vehicle_type) const noexcept {
     return false;
 }
 
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld

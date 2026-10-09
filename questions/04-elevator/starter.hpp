@@ -3,7 +3,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace lld::elevator {
+namespace lld {
+namespace elevator {
 enum class Direction { idle, up, down };
 enum class Door { closed, open };
 struct Snapshot { int floor; Direction direction; Door door; std::vector<int> pending; };
@@ -48,4 +49,5 @@ public:
 private:
     // TODO: Put synchronization at the bank boundary; never move with open doors.
 };
-}  // namespace lld::elevator
+}  // namespace elevator
+}  // namespace lld

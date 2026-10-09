@@ -9,7 +9,8 @@
 #include <utility>
 #include <vector>
 
-namespace lld::logging_service {
+namespace lld {
+namespace logging_service {
 
 using TimePoint = std::chrono::system_clock::time_point;
 enum class Level { debug = 0, info = 1, warning = 2, error = 3 };
@@ -107,4 +108,5 @@ private:
     std::vector<std::shared_ptr<Sink>> sinks_;
 };
 
-}  // namespace lld::logging_service
+}  // namespace logging_service
+}  // namespace lld

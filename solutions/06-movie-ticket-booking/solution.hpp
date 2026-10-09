@@ -6,14 +6,15 @@
 #include <limits>
 #include <map>
 #include <mutex>
-#include <optional>
+#include "optional.hpp"
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace lld::movie_ticket_booking {
+namespace lld {
+namespace movie_ticket_booking {
 
 using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
@@ -46,7 +47,7 @@ public:
             static_cast<std::size_t>(seat_count), 0)});
     }
 
-    std::optional<Hold> hold(const std::string& show_id, const std::string& customer,
+    lld::Optional<Hold> hold(const std::string& show_id, const std::string& customer,
                             const std::vector<int>& seats, TimePoint now, std::chrono::seconds ttl) {
         if (customer.empty() || seats.empty() || ttl.count() <= 0 || ttl > std::chrono::hours(24)) {
             throw std::invalid_argument("customer, seats, and TTL of 1 second to 24 hours required");
@@ -64,28 +65,28 @@ public:
         }
         advance_time(now);
         for (int seat : seats) {
-            if (show.owners[static_cast<std::size_t>(seat)] != 0) { return std::nullopt; }
+            if (show.owners[static_cast<std::size_t>(seat)] != 0) { return {}; }
         }
         if (next_id_ == std::numeric_limits<HoldId>::max()) { throw std::overflow_error("hold IDs exhausted"); }
-        Hold result{next_id_, show_id, customer, seats, now + duration, HoldStatus::held};
-        holds_.emplace(result.id, result);  // Allocate record before modifying seat ownership.
-        for (int seat : seats) { show.owners[static_cast<std::size_t>(seat)] = result.id; }
+        lld::Optional<Hold> result(Hold{next_id_, show_id, customer, seats, now + duration, HoldStatus::held});
+        holds_.emplace(result->id, *result);  // Allocate record before modifying seat ownership.
+        for (int seat : seats) { show.owners[static_cast<std::size_t>(seat)] = result->id; }
         ++next_id_;
-        return std::optional<Hold>(std::move(result));
+        return result;
     }
 
-    std::optional<Booking> confirm(HoldId id, TimePoint now) {
+    lld::Optional<Booking> confirm(HoldId id, TimePoint now) {
         std::lock_guard<std::mutex> lock(mutex_);
         advance_time(now);
         auto it = holds_.find(id);
         if (it == holds_.end() || (it->second.status != HoldStatus::held &&
                                   it->second.status != HoldStatus::booked)) {
-            return std::nullopt;
+            return {};
         }
         auto& value = it->second;
-        Booking result{id, value.show_id, value.customer_id, value.seats};
+        lld::Optional<Booking> result(Booking{id, value.show_id, value.customer_id, value.seats});
         value.status = HoldStatus::booked;  // Same booking on repeat confirmation.
-        return std::optional<Booking>(std::move(result));
+        return result;
     }
 
     bool cancel(HoldId id, TimePoint now) {
@@ -122,8 +123,9 @@ private:
         for (int seat : value.seats) { owners[static_cast<std::size_t>(seat)] = 0; }
     }
     void advance_time(TimePoint now) {
-        if (last_now_ && now < *last_now_) { throw std::invalid_argument("clock moved backwards"); }
+        if (has_last_now_ && now < last_now_) { throw std::invalid_argument("clock moved backwards"); }
         last_now_ = now;
+        has_last_now_ = true;
         for (auto& entry : holds_) {
             auto& value = entry.second;
             if (value.status == HoldStatus::held && now >= value.expires_at) {
@@ -137,7 +139,9 @@ private:
     std::map<std::string, Show> shows_;
     std::map<HoldId, Hold> holds_;
     HoldId next_id_{1};
-    std::optional<TimePoint> last_now_;
+    TimePoint last_now_{};
+    bool has_last_now_{false};
 };
 
-}  // namespace lld::movie_ticket_booking
+}  // namespace movie_ticket_booking
+}  // namespace lld

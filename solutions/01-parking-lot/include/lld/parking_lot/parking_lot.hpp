@@ -7,13 +7,14 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
-#include <optional>
+#include "optional.hpp"
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-namespace lld::parking_lot {
+namespace lld {
+namespace parking_lot {
 
 class ParkingLot {
 public:
@@ -22,12 +23,12 @@ public:
     ParkingLot(const ParkingLot&) = delete;
     ParkingLot& operator=(const ParkingLot&) = delete;
 
-    [[nodiscard]] std::optional<Ticket> park(const Vehicle& vehicle, TimePoint entered_at);
-    [[nodiscard]] std::optional<Receipt> exit(const std::string& ticket_id, TimePoint exited_at);
-    [[nodiscard]] std::size_t available_spots() const;
+    lld::Optional<Ticket> park(const Vehicle& vehicle, TimePoint entered_at);
+    lld::Optional<Receipt> exit(const std::string& ticket_id, TimePoint exited_at);
+    std::size_t available_spots() const;
 
 private:
-    [[nodiscard]] ParkingSpot* find_best_spot(VehicleType vehicle_type);
+    ParkingSpot* find_best_spot(VehicleType vehicle_type);
 
     mutable std::mutex mutex_;
     std::vector<ParkingSpot> spots_;
@@ -37,4 +38,5 @@ private:
     unsigned long long next_ticket_number_{1};
 };
 
-}  // namespace lld::parking_lot
+}  // namespace parking_lot
+}  // namespace lld
