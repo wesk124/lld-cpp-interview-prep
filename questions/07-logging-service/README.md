@@ -1,59 +1,39 @@
 # Logging Service
 
-Design a synchronous logging service with severity filtering and multiple output sinks.
+A 45–60-minute OOP exercise. Main pattern: **Observer + Adapter**.
 
-## Interview contract
+## Core interview contract
 
-1. Support debug/info/warning/error levels, with a configurable minimum.
-2. Accept injected record timestamps and fan out accepted records to all registered sinks.
-3. Provide in-memory and ostream sinks.
-4. Count per-sink delivery failures without preventing delivery to remaining sinks.
-5. Support concurrent producers and configuration updates; never hold the logger configuration lock while invoking arbitrary sink code.
+1. Filter records below the configured minimum severity.
+2. Publish each accepted record to every registered sink.
+3. Support registration/removal without changing sink implementations.
+4. Provide in-memory and stream sinks through the same Sink interface.
 
 ## Scope and assumptions
 
-Synchronous in-process logging only. No background queue, rotation, network delivery, global record ordering, or guaranteed persistence. Shared ownership is deliberate because callers and multiple loggers may retain a sink. StreamSink borrows its ostream; the caller must keep it alive and avoid unsynchronized direct access. Custom sinks must be thread-safe.
+Single-threaded synchronous delivery with valid severity values. Sinks and streams outlive registration. Base callbacks succeed and do not mutate the logger/subscriptions; async queues, failures and concurrency are follow-ups.
 
 ## Interviewee TODOs
 
-- [ ] Define immutable-by-convention Record and Delivery value types.
-- [ ] Define a sink interface with a virtual destructor.
-- [ ] Implement level filtering and a shared-lifetime sink snapshot.
-- [ ] Synchronize each provided sink independently.
-- [ ] Test threshold changes, broken sinks/streams, fanout, and concurrent writes.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Explain the Sink abstraction, shared sink ownership, and borrowed stream lifetime; identify StreamSink's Adapter role.
-- [ ] Compare Observer-style fanout with Chain of Responsibility, including whether one sink handles a record or all receive it.
-- [ ] Explore a redacting Decorator or Composite sink group and define synchronization, wrapper ordering, and delivery semantics.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Define Sink with a virtual destructor and implement both sinks.
+- [ ] Keep Logger independent of concrete sink classes: Observer.
+- [ ] Adapt ostream through StreamSink and demonstrate unsubscribe.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=07-logging-service
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 07-logging-service practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=07-logging-service` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Add a bounded asynchronous queue with an explicit overflow policy.
-2. Add formatting/redaction and rotating-file sinks.
-3. Define flush/shutdown ordering and durability guarantees.
+- Add a redacting Decorator or a Composite sink group.
+- Add async delivery, synchronization, backpressure and failure isolation after defining their contracts.
 
-After your attempt: [design explanation](../../solutions/07-logging-service/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/07-logging-service/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

@@ -1,12 +1,14 @@
-# C++ LLD Foundations Quiz Solutions
+# OOP Interview Foundations: Explanations
 
-1. **B.** `std::unique_ptr` expresses exclusive ownership while allowing runtime polymorphism.
-2. **B.** A stable ID remains valid independently of container storage and object movement.
-3. **C.** Locking exists to preserve invariants over shared mutable state; function-level locking is only an implementation technique.
-4. **B.** Strategy is useful when it isolates an expected family of policy changes.
-5. **B.** Deleting a derived policy through a base pointer requires a virtual base destructor.
-6. Examples: a spot contains at most one vehicle; a plate has at most one active ticket; an active ticket identifies exactly one occupied spot.
-7. Spots have clear ownership, uniform lifetime, and natural value behavior. Storing them directly reduces allocation and avoids unnecessary pointer ownership.
-8. The occupied spot, active-ticket map, active-license set, and any completed-session or payment state that must change consistently.
-9. Pass entry and exit timestamps into the operation or inject a clock interface. Tests then use fixed time points.
-10. Add or select a new `PricingPolicy` implementation. Allocation, spot occupancy, and active-ticket coordination should not change.
+1. **B.** A reference borrows a collaborator; it does not transfer ownership. Construct the pricing policy first and keep it alive while the lot uses it.
+2. **A.** The spot ID identifies the spot without depending on a vector element's memory address. Numeric IDs are sufficient for this model.
+3. **B.** A whole state transition needs one invariant boundary; separate locking around individual map/spot accesses can leave an inconsistent workflow.
+4. **B.** Pricing, allocation, dispatch and winning rules are examples of behavior that can vary independently of coordination.
+5. **B.** Directory owns children through the base type, so derived destructors must run.
+6. One occupied spot per active ticket; one active ticket per plate; checkout frees exactly the ticket's spot and makes that ticket unusable.
+7. The lot has a clear ownership/lifetime boundary, and each spot's small state has ordinary value semantics.
+8. The spot occupancy, ticket map and ticket-number assignment for park; occupancy and ticket removal for checkout. Pricing/I/O contracts need discussion if they execute under a lock.
+9. Supply integer minute values directly: entry 0, checkout 60 or 61.
+10. Supply a FlatPricing object through PricingPolicy. ParkingLot still calls fee and keeps the same allocation/checkout workflow.
+
+[Questions](questions.md)

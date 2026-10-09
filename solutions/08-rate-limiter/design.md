@@ -1,37 +1,43 @@
-# Rate Limiter: Reference Design
+# Rate Limiter: Interview Design
 
-[Question](../../questions/08-rate-limiter/README.md) · [Tests](tests.cpp)
+[Question](../../questions/08-rate-limiter/README.md) · [Core code](solution.hpp) · [Tests](tests.cpp)
 
-## Responsibilities, ownership, and invariants
+## OOP responsibilities and pattern
 
-TokenBucketLimiter owns one Bucket per client, containing fractional tokens and last_refill. The limiter validates request/configuration values before consumption.
+Main pattern: **Strategy**.
 
-A single mutex spans lookup, refill, cap, and subtract. This is the admission linearization boundary; independent locks around refill and consume would permit over-admission.
+| Object | Responsibility |
+| --- | --- |
+| `RateLimiter` | Common admission interface. |
+| `TokenBucket` | Continuous refill, capacity cap and weighted consumption. |
+| `FixedWindow` | Window-based admission-count alternative. |
+| `RequestGate` | Client using the selected limiter Strategy. |
 
-Injected steady-clock values make time-sensitive behavior testable. Backward per-client time is rejected instead of increasing tokens or corrupting refill history.
+RequestGate delegates allow. The selected policy finds client state, advances time, checks remaining capacity and consumes cost under its mutex.
 
-Refill is min(capacity, old_tokens + elapsed_seconds×rate). A denial never subtracts tokens; the refill timestamp still advances. A request larger than total capacity is immediately denied.
+## Ownership and scope
 
-A std::map makes each admission O(log C) for C clients and storage O(C). Floating-point arithmetic is convenient for interview scale but not an exact accounting system.
+Each concrete policy owns its client state and mutex. RequestGate borrows RateLimiter&. There is no clock service; tests supply simple millisecond values.
 
-There is no eviction, persistence, or cross-process coordination. Token buckets bound burst and long-term rate, not the exact request count in every fixed window.
+One process with finite positive configurations and normal input magnitudes. Each policy keeps client state in memory. FixedWindow anchors a client's first window at its first request; after expiry the next request starts a new window. Algorithms have different quota semantics.
 
+## Small usage example
 
-## OOP and design patterns
+Within the example's namespace:
 
-- **Current OOP design:** `TokenBucketLimiter` encapsulates client buckets and the atomic lookup/refill/consume operation. Token bucket is an algorithm; the reference has no interface for selecting alternative algorithms and therefore no Strategy collaboration yet.
-- **Strategy (follow-up):** A `RateLimitPolicy` interface could expose admission, with token-bucket and sliding-window implementations supplied to a calling service. The contract would describe costs, time semantics, and each algorithm's quota guarantees.
-- **Decorator (follow-up):** A wrapper implementing a service's interface could consult a limiter before forwarding to an inner service. This separates admission checks from the service's main behavior.
-- **Ownership discussion:** Define whether the wrapper owns its policy and inner service or borrows longer-lived collaborators; per-client mutable state still belongs to the chosen policy.
+```cpp
+TokenBucket limiter(5, 2.0);
+RequestGate gate(limiter);
+bool first = gate.admit(7, 0, 5); // true
+bool early = gate.admit(7, 0);    // false
+bool later = gate.admit(7, 500);  // true
+```
+
+Expected O(1) admission per client with unordered_map, and O(clients) storage. Each policy uses one coarse lock.
+
+## Follow-up discussion
+
+- Add retry-after information or idle-client eviction.
+- Add a distributed backend and discuss failure behavior; wrap a service with a Decorator if admission is an extra service behavior.
 
 [Pattern map and catalog](../../docs/design-patterns.md)
-
-## Scope
-
-Single-process token bucket, not a distributed limiter or strict fixed/sliding-window quota. Inject steady_clock time; timestamps must be nondecreasing for each client. Requests whose cost exceeds capacity return false. Client entries are retained; floating-point token counts are approximate.
-
-## Extend it yourself
-
-- Return retry-after durations.
-- Evict idle buckets without allowing unintended fresh bursts.
-- Implement a distributed admission backend and compare failure semantics.

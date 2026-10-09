@@ -1,14 +1,8 @@
-# File System: Test Plan
+# File System: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Nested Composite totals through Node references.
+- [ ] Sorted listing, duplicate names, missing children and edits.
+- [ ] Subtree removal and virtual destruction through unique_ptr<Node>.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] recursive/idempotent mkdir
-- [ ] file write/read/overwrite
-- [ ] lexical listing
-- [ ] file-directory errors
-- [ ] missing parent
-- [ ] nonrecursive removal restriction
-- [ ] recursive removal
-- [ ] root protection
-- [ ] path normalization/validation
-- [ ] concurrent writes
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

@@ -1,59 +1,39 @@
 # Elevator
 
-Design a discrete elevator simulator with multiple cars and replaceable hall-call dispatch.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Floors range from 0 to top_floor. A simulation tick moves a car at most one floor.
-2. Doors open at a requested stop; closing consumes a tick during which the car must not move.
-3. Coalesce repeated stop requests. Serve current-direction stops before reversing (LOOK).
-4. An idle car picks its closest pending stop, breaking equal distances toward the lower floor.
-5. A bank assigns hall calls to the nearest car, breaking ties by car index; internal buttons target a specific car.
+1. Validate stop floors and coalesce repeated requests.
+2. A step closes open doors without moving; otherwise it services the current floor or moves one floor.
+3. Use LOOK: continue toward pending stops ahead, then reverse.
+4. Bank requests use a DispatchPolicy; nearest and least-busy policies demonstrate substitution.
 
 ## Scope and assumptions
 
-A simulation, not safety-certified hardware. Single-car Elevator access must be externally serialized; ElevatorBank provides thread-safe orchestration. The nearest-car policy ignores hall direction after validation, and stop requests represent destinations rather than passengers. No capacity, emergency controls, or starvation guarantee.
+Single-threaded discrete simulation with valid initial floors in a nonnegative building range. The bank is nonempty. It models destination requests, not passengers or safety-certified hardware.
 
 ## Interviewee TODOs
 
-- [ ] Model floor, direction, doors, and pending requests independently.
-- [ ] Implement LOOK scheduling and explicit open/close/move transitions.
-- [ ] Define a dispatch interface and own the selected policy.
-- [ ] Validate floor and hall direction boundaries.
-- [ ] Serialize bank requests/ticks and return snapshots by value.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Explain car versus bank responsibilities and ownership of the dispatch policy; identify the Strategy participants.
-- [ ] Distinguish the LOOK algorithm from dispatch Strategy and enum-based movement from GoF State.
-- [ ] Explore State for emergency/maintenance behavior or Observer for displays, naming the transition and event contracts.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Encapsulate car state and door/movement transitions.
+- [ ] Implement LOOK using an ordered stop set.
+- [ ] Separate bank dispatch Strategy from the car's movement algorithm.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=04-elevator
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 04-elevator practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=04-elevator` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Make dispatch direction-aware and account for pending workload.
-2. Separate up/down hall queues and enforce bounded waiting.
-3. Model capacity, emergency stops, and hardware door sensors.
+- Add direction-aware hall calls, capacity and a waiting-time policy.
+- Use State for emergency/maintenance behavior and Observer for floor displays.
 
-After your attempt: [design explanation](../../solutions/04-elevator/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/04-elevator/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

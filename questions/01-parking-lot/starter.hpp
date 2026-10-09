@@ -1,57 +1,63 @@
 #pragma once
-#include <chrono>
+
+#include <map>
 #include <memory>
-#include "optional.hpp"
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace lld {
 namespace parking_lot {
-using TimePoint = std::chrono::system_clock::time_point;
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
 enum class VehicleType { motorcycle, car, truck };
 enum class SpotType { motorcycle, compact, large };
 struct Vehicle { std::string license_plate; VehicleType type; };
-struct Ticket { std::string id; std::string license_plate; std::string spot_id; TimePoint entered_at; };
-struct Receipt {
-    std::string ticket_id; std::string license_plate; std::string spot_id;
-    TimePoint entered_at; TimePoint exited_at; int charged_hours; int fee_cents;
-};
-struct PricingQuote { int charged_hours; int fee_cents; };
+struct Ticket { long long id; int spot_id; std::string license_plate; int entered_at; };
 
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
-
-class PricingPolicy {
-public:
-    virtual ~PricingPolicy() = default;
-    virtual PricingQuote calculate(TimePoint entered_at, TimePoint exited_at) const = 0;
-};
-class HourlyPricingPolicy final : public PricingPolicy {
-public:
-    explicit HourlyPricingPolicy(int /*cents_per_hour*/) { todo("validate and retain the hourly rate"); }
-    PricingQuote calculate(TimePoint /*entered_at*/, TimePoint /*exited_at*/) const override {
-        todo("round up, enforce a one-hour minimum, and prevent fee overflow");
-    }
-};
 class ParkingSpot {
 public:
-    ParkingSpot(std::string /*id*/, SpotType /*type*/) { todo("store spot identity and category"); }
-    // TODO: Add compatibility and occupancy transitions; keep ownership explicit.
+    ParkingSpot(int /*id*/, SpotType /*type*/) { todo("store numeric ID, type and occupancy"); }
+    int id() const { todo("return the spot ID"); }
+    SpotType type() const { todo("return the spot type"); }
+    bool available() const { todo("check occupancy"); }
+    bool accepts(VehicleType /*type*/) const { todo("implement vehicle compatibility"); }
+    void occupy() { todo("mark occupied"); }
+    void vacate() { todo("mark available"); }
+};
+class PricingPolicy {
+public:
+    virtual ~PricingPolicy() {}
+    virtual int fee(int minutes) const = 0;
+};
+class HourlyPricing : public PricingPolicy {
+public:
+    explicit HourlyPricing(int /*cents_per_hour*/) { todo("store hourly rate"); }
+    int fee(int /*minutes*/) const override { todo("round up with a one-hour minimum"); }
+};
+class FlatPricing : public PricingPolicy {
+public:
+    explicit FlatPricing(int /*cents*/) { todo("store flat fee"); }
+    int fee(int /*minutes*/) const override { todo("return flat fee"); }
 };
 class ParkingLot {
 public:
-    ParkingLot(std::vector<ParkingSpot> /*spots*/, std::unique_ptr<PricingPolicy> /*policy*/) {
-        todo("own spots and a pricing strategy; reject invalid configurations");
+    ParkingLot(std::vector<ParkingSpot> /*spots*/, const PricingPolicy& /*pricing*/) {
+        todo("own spots and tickets; borrow the pricing Strategy");
     }
-    lld::Optional<Ticket> park(const Vehicle& /*vehicle*/, TimePoint /*entered_at*/) {
-        todo("allocate atomically, reject duplicate plates, and create a stable ticket");
+    long long park(const Vehicle& /*vehicle*/, int /*now_minutes*/) {
+        todo("reject duplicates, choose smallest compatible spot, create numeric ticket");
     }
-    lld::Optional<Receipt> exit(const std::string& /*ticket_id*/, TimePoint /*exited_at*/) {
-        todo("validate and price before atomically releasing the session");
+    int checkout(long long /*ticket_id*/, int /*now_minutes*/) {
+        todo("price through Strategy, free spot and remove ticket");
     }
-    std::size_t available_spots() const { todo("return a synchronized capacity snapshot"); }
-private:
-    // TODO: Define owned state, indexes, ticket sequence, and the lock boundary.
+    int available_spots() const { todo("count free spots"); }
 };
-}  // namespace parking_lot
-}  // namespace lld
+
+} // namespace parking_lot
+} // namespace lld

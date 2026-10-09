@@ -1,59 +1,39 @@
 # Parking Lot
 
-Design an in-memory parking lot for motorcycles, cars, and trucks.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Allocate the smallest available compatible spot: motorcycle → any spot; car → compact/large; truck → large.
-2. Return a stable ticket containing plate, spot ID, and injected entry time.
-3. Allow at most one active ticket per plate. Reject incompatible capacity or duplicate plates with an empty optional.
-4. Checkout prices the session before freeing the spot; unknown/used tickets return an empty optional.
-5. Hourly pricing rounds partial hours up, with a one-hour minimum. Invalid times and fee overflow throw without releasing the session.
+1. Park motorcycles, cars and trucks in the smallest free compatible spot.
+2. Return a long long ticket ID, or -1 when parking fails; spot IDs are int.
+3. Reject a second active session for the same plate. Checkout calculates cents before freeing the spot and invalidates the ticket.
+4. Hourly pricing rounds partial hours up, with a one-hour minimum; flat pricing charges once.
 
 ## Scope and assumptions
 
-No payments, persistence, reservations, or distributed coordination. Prices are integer cents. Use system_clock timestamps supplied by the caller; the lot rejects exits earlier than their entries.
+Single-threaded, in-memory model. Time is supplied as nonnegative integer minutes. Construction supplies unique, initially free spot IDs and reasonable nonnegative prices/counts. There is no payment or persistence layer.
 
 ## Interviewee TODOs
 
-- [ ] Define spot compatibility and validate unique empty spots.
-- [ ] Own spots by value and pricing exclusively through a polymorphic interface.
-- [ ] Make ticket/plate/spot transitions atomic, including allocation failure rollback.
-- [ ] Implement price-before-release checkout and single-use tickets.
-- [ ] Test exact-hour, just-over-hour, policy failure, and concurrent capacity boundaries.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Identify the context, strategy interface, and concrete pricing policy; explain who owns the policy and spots.
-- [ ] Discuss how Strategy supports weekend pricing independently of allocation and checkout.
-- [ ] Explore a Decorator for surcharges or an Observer for capacity displays, including ordering and notification boundaries.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Implement spot compatibility and numeric ticket lookup.
+- [ ] Implement park and checkout, preserving occupancy/session consistency.
+- [ ] Call PricingPolicy through its interface and demonstrate hourly versus flat pricing.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=01-parking-lot
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 01-parking-lot practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=01-parking-lot` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Add EV charging capabilities without a subclass explosion.
-2. Add weekend pricing or floors/capacity displays.
-3. Explain durable checkout with a payment system.
+- Add a mutex around each complete park/checkout operation if concurrent entrances are required.
+- Add a discount decorator, or extend the pricing input for time-of-day fees.
 
-After your attempt: [design explanation](../../solutions/01-parking-lot/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/01-parking-lot/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

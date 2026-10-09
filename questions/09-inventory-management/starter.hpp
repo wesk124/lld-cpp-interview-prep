@@ -1,29 +1,45 @@
 #pragma once
+
 #include <map>
+#include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
+
 namespace lld {
 namespace inventory_management {
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
 struct Stock {
     int on_hand; int reserved;
-    int available() const noexcept { return on_hand - reserved; }
+    int available() const { return on_hand - reserved; }
 };
-enum class ReservationState { held, committed, released };
 using Quantities = std::map<std::string, int>;
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
+enum class ReservationState { held, committed, released };
+class StockObserver {
+public:
+    virtual ~StockObserver() {}
+    virtual void on_low_stock(const std::string& sku, int available) = 0;
+};
 class Inventory {
 public:
-    void add_sku(const std::string& /*sku*/, int /*quantity*/) { todo("create a unique SKU with valid stock"); }
-    void receive(const std::string& /*sku*/, int /*quantity*/) { todo("add stock with overflow checks"); }
-    Stock stock(const std::string& /*sku*/) const { todo("return a synchronized stock snapshot"); }
-    bool reserve(const std::string& /*order_id*/, const Quantities& /*quantities*/) {
-        todo("validate the entire order, reserve atomically, and deduplicate matching retries");
+    explicit Inventory(int /*low_stock_threshold*/ = 3) { todo("store notification threshold"); }
+    void subscribe(StockObserver& /*observer*/) { todo("register Observer"); }
+    void unsubscribe(StockObserver& /*observer*/) { todo("remove Observer"); }
+    bool add_sku(const std::string& /*sku*/, int /*quantity*/) { todo("add unique SKU"); }
+    bool receive(const std::string& /*sku*/, int /*quantity*/) { todo("increase on-hand stock"); }
+    Stock stock(const std::string& /*sku*/) const { todo("return stock snapshot"); }
+    bool reserve(int /*order_id*/, const Quantities& /*quantities*/) {
+        todo("validate whole order, reserve quantities and notify low-stock Observers");
     }
-    bool commit(const std::string& /*order_id*/) { todo("decrease on-hand and reserved stock exactly once"); }
-    bool release(const std::string& /*order_id*/) { todo("return held inventory exactly once"); }
-private:
-    // TODO: Preserve 0 <= reserved <= on_hand for every SKU.
-    // TODO: Keep terminal order records so retries do not double-consume stock.
+    bool commit(int /*order_id*/) { todo("consume reserved stock once"); }
+    bool release(int /*order_id*/) { todo("release reserved stock once"); }
 };
-}  // namespace inventory_management
-}  // namespace lld
+
+} // namespace inventory_management
+} // namespace lld

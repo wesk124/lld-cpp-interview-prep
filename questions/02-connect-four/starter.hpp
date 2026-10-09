@@ -1,26 +1,44 @@
 #pragma once
+
+#include <map>
+#include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
+
 namespace lld {
 namespace connect_four {
-enum class Cell { empty, red, yellow };
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
+using Board = std::vector<std::vector<char>>;
 enum class Status { playing, red_won, yellow_won, draw };
-struct Move { int row; int column; Cell player; Status status; };
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
+class WinRule {
+public:
+    virtual ~WinRule() {}
+    virtual bool wins(const Board& board, int row, int column) const = 0;
+};
+class ConnectKRule : public WinRule {
+public:
+    explicit ConnectKRule(int /*length*/ = 4) { todo("store winning length"); }
+    bool wins(const Board& /*board*/, int /*row*/, int /*column*/) const override {
+        todo("count matching pieces in both directions on four axes");
+    }
+};
 class Game {
 public:
-    explicit Game(int /*rows*/ = 6, int /*columns*/ = 7, int /*connect*/ = 4) {
-        todo("validate configuration and initialize an empty board");
+    Game(const WinRule& /*rule*/, int /*rows*/ = 6, int /*columns*/ = 7) {
+        todo("initialize board and turn; borrow the winning-rule Strategy");
     }
-    Cell cell(int /*row*/, int /*column*/) const { todo("provide checked board access"); }
-    Cell next_player() const { todo("expose the current turn"); }
-    Status status() const { todo("expose terminal or active game state"); }
-    Move drop(int /*column*/) {
-        todo("validate, apply gravity, detect four directions, and transition turn/state");
-    }
-private:
-    // TODO: Choose board storage, move count, turn, and terminal state.
-    // TODO: Count contiguous matching pieces on both sides of the latest move.
+    bool drop(int /*column*/) { todo("apply gravity, evaluate rule, update status and turn"); }
+    char cell(int /*row*/, int /*column*/) const { todo("return a board cell"); }
+    char next_player() const { todo("return current player"); }
+    Status status() const { todo("return game status"); }
 };
-}  // namespace connect_four
-}  // namespace lld
+
+} // namespace connect_four
+} // namespace lld

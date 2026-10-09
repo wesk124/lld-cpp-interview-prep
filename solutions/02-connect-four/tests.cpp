@@ -9,58 +9,39 @@ using namespace lld::connect_four;
 
 int main() {
     test::Suite suite;
-    suite.run("gravity and alternating turns", [] {
-        Game game;
-        const auto first = game.drop(2);
-        CHECK(first.row == 5 && first.player == Cell::red);
-        CHECK(game.next_player() == Cell::yellow);
-        CHECK(game.drop(2).row == 4);
-        CHECK(game.cell(5, 2) == Cell::red);
+    suite.run("gravity and invalid move preserve turn", [] {
+        ConnectKRule rule;
+        Game game(rule, 2, 2);
+        CHECK(game.drop(0));
+        CHECK(game.cell(1, 0) == 'R');
+        CHECK(game.drop(0));
+        CHECK(game.cell(0, 0) == 'Y');
+        CHECK(!game.drop(0));
+        CHECK(!game.drop(-1));
+        CHECK(game.next_player() == 'R');
     });
-    suite.run("horizontal win", [] {
-        Game game;
-        for (int column : {0, 0, 1, 1, 2, 2, 3}) { game.drop(column); }
+    suite.run("horizontal and vertical wins", [] {
+        ConnectKRule rule;
+        Game horizontal(rule), vertical(rule);
+        for (int column : {0, 6, 1, 6, 2, 6, 3}) CHECK(horizontal.drop(column));
+        CHECK(horizontal.status() == Status::red_won);
+        CHECK(!horizontal.drop(4));
+        for (int column : {0, 1, 0, 1, 0, 1, 0}) CHECK(vertical.drop(column));
+        CHECK(vertical.status() == Status::red_won);
+    });
+    suite.run("diagonal and draw", [] {
+        ConnectKRule rule;
+        Game diagonal(rule), draw(rule, 2, 2);
+        for (int column : {0, 1, 1, 2, 2, 3, 2, 3, 3, 5, 3}) CHECK(diagonal.drop(column));
+        CHECK(diagonal.status() == Status::red_won);
+        for (int column : {0, 1, 0, 1}) CHECK(draw.drop(column));
+        CHECK(draw.status() == Status::draw);
+    });
+    suite.run("winning-rule Strategy changes the rules", [] {
+        ConnectKRule connect_three(3);
+        Game game(connect_three);
+        for (int column : {0, 1, 0, 1, 0}) CHECK(game.drop(column));
         CHECK(game.status() == Status::red_won);
-        EXPECT_THROW(std::logic_error, game.drop(4));
-    });
-    suite.run("vertical win", [] {
-        Game game;
-        for (int column : {0, 1, 0, 1, 0, 1, 0}) { game.drop(column); }
-        CHECK(game.status() == Status::red_won);
-    });
-    suite.run("rising diagonal win", [] {
-        Game game;
-        for (int column : {0, 1, 1, 2, 4, 2, 2, 3, 4, 3, 5, 3, 3}) { game.drop(column); }
-        CHECK(game.status() == Status::red_won);
-    });
-    suite.run("falling diagonal win", [] {
-        Game game;
-        for (int column : {6, 5, 5, 4, 2, 4, 4, 3, 2, 3, 1, 3, 3}) { game.drop(column); }
-        CHECK(game.status() == Status::red_won);
-    });
-    suite.run("full column rejection does not advance turn", [] {
-        Game game;
-        for (int i = 0; i < 6; ++i) { game.drop(0); }
-        const Cell turn = game.next_player();
-        EXPECT_THROW(std::logic_error, game.drop(0));
-        CHECK(game.next_player() == turn);
-    });
-    suite.run("draw on a configurable board", [] {
-        Game game(2, 3, 3);
-        for (int column : {0, 1, 2, 0, 1, 2}) { game.drop(column); }
-        CHECK(game.status() == Status::draw);
-    });
-    suite.run("invalid inputs", [] {
-        EXPECT_THROW(std::invalid_argument, Game(0, 7, 4));
-        Game game;
-        EXPECT_THROW(std::out_of_range, game.drop(-1));
-        EXPECT_THROW(std::out_of_range, game.cell(6, 0));
-        CHECK(game.next_player() == Cell::red);
-    });
-    suite.run("yellow can win", [] {
-        Game game;
-        for (int column : {0, 1, 0, 1, 2, 1, 2, 1}) { game.drop(column); }
-        CHECK(game.status() == Status::yellow_won);
     });
     return suite.finish();
 }

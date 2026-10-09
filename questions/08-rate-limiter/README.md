@@ -1,59 +1,39 @@
 # Rate Limiter
 
-Design an in-process per-client token-bucket rate limiter.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Configure positive integer burst capacity and a finite positive refill rate.
-2. Start a new client with a full bucket. Refill continuously and cap at capacity.
-3. Consume a positive integer request cost only when enough tokens exist; never borrow future tokens.
-4. Isolate client buckets; reject backward time for an existing client.
-5. Serialize refill plus consume so concurrent callers cannot exceed the available burst.
+1. Identify clients with int IDs and supply nonnegative long long millisecond timestamps.
+2. Start token buckets full; continuously refill at tokens/second, cap at capacity and consume a positive cost only if available.
+3. Reject invalid cost or backward time with false; isolate client state.
+4. Keep refill/check/consume inside one mutex; expose both policies through RateLimiter.
 
 ## Scope and assumptions
 
-Single-process token bucket, not a distributed limiter or strict fixed/sliding-window quota. Inject steady_clock time; timestamps must be nondecreasing for each client. Requests whose cost exceeds capacity return false. Client entries are retained; floating-point token counts are approximate.
+One process with finite positive configurations and normal input magnitudes. Each policy keeps client state in memory. FixedWindow anchors a client's first window at its first request; after expiry the next request starts a new window. Algorithms have different quota semantics.
 
 ## Interviewee TODOs
 
-- [ ] Store fractional tokens and last-refill time per client.
-- [ ] Validate configuration, client identity, and request cost.
-- [ ] Cap refill after long idle periods.
-- [ ] Make admission one atomic state transition.
-- [ ] Test partial refills, weighted requests, clients, rollback, and simultaneous admission.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Explain which object owns client buckets and why refill and consumption form one protected operation.
-- [ ] Explore a Strategy interface for token-bucket and sliding-window algorithms; describe the guarantees each implementation exposes.
-- [ ] Discuss a Decorator that adds admission checks around a service and identify ownership of the service and limiter.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Implement token-bucket admission as one short protected operation.
+- [ ] Use the abstract interface in RequestGate: Strategy.
+- [ ] Implement the small fixed-window alternative after the token-bucket core; compare their guarantees.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=08-rate-limiter
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 08-rate-limiter practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=08-rate-limiter` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Return retry-after durations.
-2. Evict idle buckets without allowing unintended fresh bursts.
-3. Implement a distributed admission backend and compare failure semantics.
+- Add retry-after information or idle-client eviction.
+- Add a distributed backend and discuss failure behavior; wrap a service with a Decorator if admission is an extra service behavior.
 
-After your attempt: [design explanation](../../solutions/08-rate-limiter/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/08-rate-limiter/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

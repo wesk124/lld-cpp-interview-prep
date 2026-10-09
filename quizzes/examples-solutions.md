@@ -1,55 +1,57 @@
-# Nine-Example Scenario Quiz: Answers
+# Interview-Core Scenario Explanations
 
 ## Parking Lot
 
-1. No. Validate and price before changing occupancy; retain the ticket so the caller can recover/retry.
-2. No. Total availability and compatible availability are different. Allocation checks capability, not just the number of free slots.
-3. IDs do not depend on container relocation or object lifetimes, and make session values independent of internal storage.
+1. Only display formatting; numeric identity is enough.
+2. No. checkout returns -1 and leaves the active session occupied.
+3. In a PricingPolicy implementation, not a pricing switch inside ParkingLot.
 
 ## Connect Four
 
-1. The same player's turn. Validate before modifying turn or board state.
-2. No. Only lines through the new piece can create a new win; check both directions along four axes.
-3. To detect a full-board draw without an additional full scan after every move; increment only for legal moves.
+1. The same player's; the invalid move returns false without changing turn/state.
+2. Only that piece can create a new win after a previously non-winning board.
+3. The WinRule Strategy; Game coordinates the drop and lifecycle.
 
 ## Amazon Locker
 
-1. No. Code invalidation is not physical package removal. The compartment remains occupied until collection.
-2. No. Reject the collision before publishing occupancy, keeping the existing assignment and free capacity intact.
-3. No. Production requires unpredictable codes, authentication/attempt limits, and a secure lifecycle; the sample only demonstrates injection.
+1. To avoid occupying a large slot unnecessarily and preserve it for a large package.
+2. No. Pickup erases the assignment and releases the slot.
+3. No. They demonstrate lookup only; secure authentication is a follow-up.
 
 ## Elevator
 
-1. No. The next tick closes the doors at floor 3. A later tick can move.
-2. No. It completes current-direction destinations before reversing when none remain ahead.
-3. No. The sample uses distance-only selection; directional hall queues and bounded waiting are separate design requirements.
+1. No. Closing consumes that step and the floor remains unchanged.
+2. No. It finishes pending destinations ahead, then reverses.
+3. NearestCar and LeastBusyCar implement DispatchPolicy.
 
 ## File System
 
-1. The directory can own each child exclusively through unique_ptr; the root owns the entire hierarchy through those relationships.
-2. Not under this contract. The parent must exist; recursive mkdir is a separate operation.
-3. They preserve synchronization and lifetime boundaries: callers cannot mutate state outside the lock or retain invalidated pointers.
+1. Composite exposes the same operation; a directory recursively sums its children.
+2. The directory, through unique_ptr<Node>.
+3. No. Removal destroys the owned subtree and invalidates that pointer.
 
 ## Movie Ticket Booking
 
-1. Expiry processing, conflict validation, and seat ownership publication must be coordinated atomically; a separate availability check is not enough.
-2. No. The contract expires holds when now >= expires_at, including the exact deadline.
-3. Otherwise a stale ID could free a seat reused by a new hold. Lifecycle validation also supports idempotent confirmation/cancellation.
+1. No. The complete request is validated before any seats change.
+2. The pricing step can complete without leaving partially updated seat ownership if it fails.
+3. The base is single-threaded. A concurrent extension needs a lock spanning checks and updates.
 
 ## Logging Service
 
-1. No. Snapshot sinks while locked, then release the logger lock before fanout. Each sink protects its own state.
-2. No. Isolate per-sink failure, continue fanout, and report delivered/failed counts.
-3. No. Per-sink synchronization prevents corruption, not a shared total order. A single queue/consumer can provide global ordering.
+1. No. Logger notifies all registered sinks; this is Observer, not a handling chain.
+2. An existing ostream output interface into Sink.write.
+3. No. Logger borrows sinks; removing a subscription does not transfer/destroy ownership.
 
 ## Rate Limiter
 
-1. 3 tokens (before any new consumption), capped at capacity.
-2. No. It bounds burst and refill rate; requests near a window boundary may form a larger fixed-window count.
-3. Otherwise concurrent callers may observe the same budget and consume it twice, violating the burst bound.
+1. Three tokens, subject to the capacity cap.
+2. No. They share an interface but have different continuous-refill/window-boundary semantics.
+3. Client-state lookup, refill/window advancement, capacity checking and consumption.
 
 ## Inventory Management
 
-1. No. The reservation is all-or-nothing across the entire order.
-2. No. Stable ID plus matching payload/lifecycle permits idempotent acknowledgement without a second stock mutation.
-3. Available is 6. Commit makes on_hand=6 and reserved=0; available remains 6.
+1. No. Whole-order validation precedes all reserved-count updates.
+2. on_hand becomes 6 and reserved becomes 0; available stays 6.
+3. Inventory updates the full order first, then notifies the StockObserver interface. Base callbacks do not mutate inventory.
+
+[Questions](examples-questions.md)

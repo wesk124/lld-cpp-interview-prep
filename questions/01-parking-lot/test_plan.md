@@ -1,15 +1,8 @@
-# Parking Lot: Test Plan
+# Parking Lot: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Numeric ticket IDs; full/incompatible capacity; duplicate plates.
+- [ ] Hourly boundary 60/61 minutes; minimum hour; flat-policy substitution.
+- [ ] Invalid/reused ticket; earlier checkout time leaves the spot occupied.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] smallest compatible spot
-- [ ] fallback to larger spot
-- [ ] duplicate plate
-- [ ] single-use checkout
-- [ ] one-hour minimum and exact boundary
-- [ ] invalid time preserves session
-- [ ] injected flat pricing
-- [ ] pricing failure preserves occupancy
-- [ ] duplicate spot configuration
-- [ ] fee/duration overflow
-- [ ] concurrent allocation
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

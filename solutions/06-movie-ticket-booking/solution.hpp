@@ -1,147 +1,92 @@
 #pragma once
 
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
-#include <limits>
 #include <map>
-#include <mutex>
-#include "optional.hpp"
 #include <set>
-#include <stdexcept>
-#include <string>
-#include <utility>
 #include <vector>
 
 namespace lld {
 namespace movie_ticket_booking {
 
-using Clock = std::chrono::steady_clock;
-using TimePoint = Clock::time_point;
-using HoldId = std::uint64_t;
-enum class HoldStatus { held, booked, cancelled, expired };
-struct Hold {
-    HoldId id;
-    std::string show_id;
-    std::string customer_id;
-    std::vector<int> seats;
-    TimePoint expires_at;
-    HoldStatus status;
+// Strategy: seat booking does not choose a concrete pricing rule.
+class SeatPricing {
+public:
+    virtual ~SeatPricing() {}
+    virtual int total(int seats) const = 0;
 };
+
+class PerSeatPricing : public SeatPricing {
+public:
+    explicit PerSeatPricing(int cents_per_seat) : price_(cents_per_seat) {}
+    int total(int seats) const override { return seats * price_; }
+private:
+    int price_;
+};
+
+class BookingFeePricing : public SeatPricing {
+public:
+    BookingFeePricing(int cents_per_seat, int booking_fee)
+        : price_(cents_per_seat), fee_(booking_fee) {}
+    int total(int seats) const override { return seats * price_ + fee_; }
+private:
+    int price_;
+    int fee_;
+};
+
 struct Booking {
-    HoldId id;
-    std::string show_id;
-    std::string customer_id;
+    int id;
+    int show_id;
+    int customer_id;
     std::vector<int> seats;
+    int price_cents;
 };
 
 class BookingService {
 public:
-    void add_show(std::string id, std::string movie, int seat_count) {
-        if (id.empty() || movie.empty() || seat_count <= 0) {
-            throw std::invalid_argument("show, movie, and positive capacity required");
-        }
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (shows_.count(id) != 0) { throw std::invalid_argument("show already exists"); }
-        shows_.emplace(std::move(id), Show{std::move(movie), std::vector<HoldId>(
-            static_cast<std::size_t>(seat_count), 0)});
-    }
+    explicit BookingService(const SeatPricing& pricing) : pricing_(pricing), next_id_(1) {}
 
-    lld::Optional<Hold> hold(const std::string& show_id, const std::string& customer,
-                            const std::vector<int>& seats, TimePoint now, std::chrono::seconds ttl) {
-        if (customer.empty() || seats.empty() || ttl.count() <= 0 || ttl > std::chrono::hours(24)) {
-            throw std::invalid_argument("customer, seats, and TTL of 1 second to 24 hours required");
-        }
-        const auto duration = std::chrono::duration_cast<Clock::duration>(ttl);
-        if (now > TimePoint::max() - duration) { throw std::overflow_error("expiration overflow"); }
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto& show = find_show(show_id);
-        std::set<int> unique;
-        for (int seat : seats) {
-            if (seat < 0 || static_cast<std::size_t>(seat) >= show.owners.size() ||
-                !unique.insert(seat).second) {
-                throw std::invalid_argument("invalid or duplicate seat");
-            }
-        }
-        advance_time(now);
-        for (int seat : seats) {
-            if (show.owners[static_cast<std::size_t>(seat)] != 0) { return {}; }
-        }
-        if (next_id_ == std::numeric_limits<HoldId>::max()) { throw std::overflow_error("hold IDs exhausted"); }
-        lld::Optional<Hold> result(Hold{next_id_, show_id, customer, seats, now + duration, HoldStatus::held});
-        holds_.emplace(result->id, *result);  // Allocate record before modifying seat ownership.
-        for (int seat : seats) { show.owners[static_cast<std::size_t>(seat)] = result->id; }
-        ++next_id_;
-        return result;
-    }
-
-    lld::Optional<Booking> confirm(HoldId id, TimePoint now) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        advance_time(now);
-        auto it = holds_.find(id);
-        if (it == holds_.end() || (it->second.status != HoldStatus::held &&
-                                  it->second.status != HoldStatus::booked)) {
-            return {};
-        }
-        auto& value = it->second;
-        lld::Optional<Booking> result(Booking{id, value.show_id, value.customer_id, value.seats});
-        value.status = HoldStatus::booked;  // Same booking on repeat confirmation.
-        return result;
-    }
-
-    bool cancel(HoldId id, TimePoint now) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        advance_time(now);
-        auto it = holds_.find(id);
-        if (it == holds_.end()) { return false; }
-        if (it->second.status == HoldStatus::cancelled) { return true; }
-        if (it->second.status != HoldStatus::held) { return false; }
-        release_seats(it->second);
-        it->second.status = HoldStatus::cancelled;
+    bool add_show(int show_id, int seat_count) {
+        if (seat_count <= 0 || shows_.count(show_id) != 0) return false;
+        shows_.emplace(show_id, std::vector<bool>(static_cast<std::size_t>(seat_count), false));
         return true;
     }
 
-    std::size_t available_seats(const std::string& show_id, TimePoint now) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto& show = find_show(show_id);
-        advance_time(now);
-        return static_cast<std::size_t>(std::count(show.owners.begin(), show.owners.end(), HoldId{0}));
+    int book(int show_id, int customer_id, const std::vector<int>& seats) {
+        auto show = shows_.find(show_id);
+        if (show == shows_.end() || seats.empty()) return -1;
+        std::set<int> unique;
+        for (int seat : seats)
+            if (seat < 0 || seat >= static_cast<int>(show->second.size()) ||
+                show->second[static_cast<std::size_t>(seat)] || !unique.insert(seat).second) return -1;
+
+        int price = pricing_.total(static_cast<int>(seats.size()));
+        int id = next_id_++;
+        bookings_.emplace(id, Booking{id, show_id, customer_id, seats, price});
+        for (int seat : seats) show->second[static_cast<std::size_t>(seat)] = true;
+        return id;
+    }
+
+    bool cancel(int booking_id) {
+        auto booking = bookings_.find(booking_id);
+        if (booking == bookings_.end()) return false;
+        auto& seats = shows_.at(booking->second.show_id);
+        for (int seat : booking->second.seats) seats[static_cast<std::size_t>(seat)] = false;
+        bookings_.erase(booking);
+        return true;
+    }
+
+    Booking booking(int id) const { return bookings_.at(id); }
+    int available_seats(int show_id) const {
+        int count = 0;
+        for (bool booked : shows_.at(show_id)) if (!booked) ++count;
+        return count;
     }
 
 private:
-    struct Show {
-        std::string movie;
-        std::vector<HoldId> owners;  // 0 means available; nonzero ID owns the seat.
-    };
-    Show& find_show(const std::string& id) {
-        auto it = shows_.find(id);
-        if (it == shows_.end()) { throw std::out_of_range("unknown show"); }
-        return it->second;
-    }
-    void release_seats(const Hold& value) {
-        auto& owners = find_show(value.show_id).owners;
-        for (int seat : value.seats) { owners[static_cast<std::size_t>(seat)] = 0; }
-    }
-    void advance_time(TimePoint now) {
-        if (has_last_now_ && now < last_now_) { throw std::invalid_argument("clock moved backwards"); }
-        last_now_ = now;
-        has_last_now_ = true;
-        for (auto& entry : holds_) {
-            auto& value = entry.second;
-            if (value.status == HoldStatus::held && now >= value.expires_at) {
-                release_seats(value);
-                value.status = HoldStatus::expired;
-            }
-        }
-    }
-
-    std::mutex mutex_;
-    std::map<std::string, Show> shows_;
-    std::map<HoldId, Hold> holds_;
-    HoldId next_id_{1};
-    TimePoint last_now_{};
-    bool has_last_now_{false};
+    const SeatPricing& pricing_; // Caller keeps this policy alive.
+    std::map<int, std::vector<bool>> shows_;
+    std::map<int, Booking> bookings_;
+    int next_id_;
 };
 
-}  // namespace movie_ticket_booking
-}  // namespace lld
+} // namespace movie_ticket_booking
+} // namespace lld

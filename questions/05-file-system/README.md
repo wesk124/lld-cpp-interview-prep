@@ -1,59 +1,39 @@
 # File System
 
-Design a small in-memory file system supporting directories and text files.
+A 45–60-minute OOP exercise. Main pattern: **Composite**.
 
-## Interview contract
+## Core interview contract
 
-1. Support recursive mkdir, write/overwrite file, read file, lexical directory listing, and removal.
-2. A file's parent must already exist. Do not traverse through a file or overwrite a directory.
-3. Accept absolute paths only; normalize repeated slashes and reject dot/dot-dot segments.
-4. Protect the root from deletion. Removing a nonempty directory requires recursive=true.
-5. Return snapshots rather than borrowed node pointers and serialize public operations.
+1. Create a tree of named files and directories in memory.
+2. Add/remove/find a direct child and list names in lexical order; reject duplicate sibling names.
+3. Compute size through Node: a file returns its content size and a directory sums child sizes recursively.
+4. A directory exclusively owns its children; removing it destroys its subtree.
 
 ## Scope and assumptions
 
-In-memory text only. No host OS files are created/deleted by FileSystem. No links, permissions, append, rename, quotas, or persistence. list accepts directories only; file read/write paths must not end with a slash. Each public method is serialized; mkdir may partially complete on allocation failure.
+Single-threaded tree model. Navigation uses directory objects and direct child names. POSIX path parsing, host files, links and permissions are follow-ups, not part of this core exercise. Names are nonempty; size is text byte count.
 
 ## Interviewee TODOs
 
-- [ ] Model a File/Directory tree with exclusive subtree ownership.
-- [ ] Implement path parsing without consulting the host filesystem.
-- [ ] Enforce file-versus-directory boundaries.
-- [ ] Implement predictable error behavior for missing parents and invalid paths.
-- [ ] Use RAII to release an entire subtree on recursive removal.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Identify the component, leaf, and composite roles and explain ownership of a directory's children.
-- [ ] Discuss the common node interface and how a path-based FileSystem API acts as a Facade.
-- [ ] Explore Visitor for reports or Command for undoable edits; compare the costs of adding operations and node types.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Define the shared Node interface and a virtual destructor.
+- [ ] Implement File as the leaf and Directory as the Composite.
+- [ ] Use unique_ptr for child ownership and recursive polymorphic size calculation.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=05-file-system
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 05-file-system practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=05-file-system` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Add atomic rename and cycle prevention.
-2. Add permissions, size quotas, or append.
-3. Support symbolic links with bounded traversal depth.
+- Add path-based lookup and validation as a separate workflow.
+- Add Visitor for exports/reports, or Command for undoable edits.
 
-After your attempt: [design explanation](../../solutions/05-file-system/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/05-file-system/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

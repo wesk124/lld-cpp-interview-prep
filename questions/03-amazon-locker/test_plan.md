@@ -1,14 +1,8 @@
-# Amazon Locker: Test Plan
+# Amazon Locker: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Small packages preserve large slots; incompatible/full capacity.
+- [ ] Single-use codes; slot reuse; duplicate package rejection.
+- [ ] Allocation through the abstract policy interface.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] smallest size allocation
-- [ ] incompatible capacity
-- [ ] duplicate package
-- [ ] single-use code
-- [ ] invalid code
-- [ ] expired-but-occupied slot
-- [ ] exact-deadline courier collection
-- [ ] code collision preserves capacity
-- [ ] configuration/time validation
-- [ ] concurrent single-slot allocation
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

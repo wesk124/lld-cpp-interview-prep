@@ -4,85 +4,67 @@
 #include "solution.hpp"
 #endif
 #include "test_support.hpp"
-#include <atomic>
-#include <limits>
-#include <thread>
-#include <vector>
+#include <utility>
 
 using namespace lld::inventory_management;
 
 int main() {
     test::Suite suite;
-    suite.run("stock receipt and availability", [] {
+    suite.run("reserve, commit and idempotent retries", [] {
         Inventory inventory;
-        inventory.add_sku("book", 3);
-        inventory.receive("book", 2);
-        CHECK(inventory.stock("book").available() == 5);
+        CHECK(inventory.add_sku("A", 10));
+        CHECK(inventory.reserve(1, {{"A", 4}}));
+        CHECK(inventory.reserve(1, {{"A", 4}}));
+        CHECK(inventory.stock("A").reserved == 4);
+        CHECK(inventory.commit(1));
+        CHECK(inventory.commit(1));
+        CHECK(inventory.stock("A").on_hand == 6);
+        CHECK(inventory.stock("A").reserved == 0);
+        CHECK(!inventory.release(1));
     });
-    suite.run("multi-SKU reservation is atomic", [] {
+    suite.run("whole-order validation and release", [] {
         Inventory inventory;
-        inventory.add_sku("a", 3);
-        inventory.add_sku("b", 1);
-        CHECK(!inventory.reserve("bad", {{"a", 2}, {"b", 2}}));
-        CHECK(inventory.stock("a").reserved == 0);
-        CHECK(inventory.stock("b").reserved == 0);
-        CHECK(inventory.reserve("good", {{"a", 2}, {"b", 1}}));
-        CHECK(inventory.stock("a").available() == 1);
+        inventory.add_sku("A", 10); inventory.add_sku("B", 1);
+        CHECK(!inventory.reserve(1, {{"A", 2}, {"B", 2}}));
+        CHECK(inventory.stock("A").reserved == 0);
+        CHECK(inventory.reserve(2, {{"A", 2}}));
+        CHECK(!inventory.reserve(2, {{"A", 3}}));
+        CHECK(inventory.release(2));
+        CHECK(inventory.release(2));
+        CHECK(inventory.stock("A").available() == 10);
+        CHECK(!inventory.reserve(2, {{"A", 2}}));
     });
-    suite.run("reservation and commit retries are idempotent", [] {
-        Inventory inventory;
-        inventory.add_sku("a", 5);
-        CHECK(inventory.reserve("order", {{"a", 2}}));
-        CHECK(inventory.reserve("order", {{"a", 2}}));
-        CHECK(inventory.stock("a").reserved == 2);
-        CHECK(inventory.commit("order"));
-        CHECK(inventory.commit("order"));
-        CHECK(inventory.reserve("order", {{"a", 2}}));
-        CHECK(inventory.stock("a").on_hand == 3 && inventory.stock("a").reserved == 0);
-        CHECK(!inventory.release("order"));
+    suite.run("low-stock Observer and unsubscribe", [] {
+        class Alerts : public StockObserver {
+        public:
+            void on_low_stock(const std::string& sku, int available) override {
+                values.emplace_back(sku, available);
+            }
+            std::vector<std::pair<std::string, int>> values;
+        };
+        Inventory inventory(3);
+        Alerts alerts;
+        inventory.subscribe(alerts);
+        inventory.add_sku("A", 10);
+        CHECK(inventory.reserve(1, {{"A", 8}}));
+        CHECK(alerts.values.size() == 1);
+        CHECK(alerts.values[0].first == "A" && alerts.values[0].second == 2);
+        CHECK(inventory.reserve(1, {{"A", 8}}));
+        CHECK(alerts.values.size() == 1);
+        inventory.unsubscribe(alerts);
+        CHECK(inventory.reserve(2, {{"A", 1}}));
+        CHECK(alerts.values.size() == 1);
     });
-    suite.run("release is idempotent and prevents commit", [] {
+    suite.run("basic catalog validation", [] {
         Inventory inventory;
-        inventory.add_sku("a", 2);
-        CHECK(inventory.reserve("order", {{"a", 2}}));
-        CHECK(inventory.release("order") && inventory.release("order"));
-        CHECK(inventory.stock("a").available() == 2);
-        CHECK(!inventory.commit("order"));
-        CHECK(!inventory.reserve("order", {{"a", 2}}));
-    });
-    suite.run("order identity cannot change request payload", [] {
-        Inventory inventory;
-        inventory.add_sku("a", 5);
-        CHECK(inventory.reserve("order", {{"a", 1}}));
-        EXPECT_THROW(std::invalid_argument, inventory.reserve("order", {{"a", 2}}));
-        CHECK(inventory.stock("a").reserved == 1);
-    });
-    suite.run("unknown SKU and order handling", [] {
-        Inventory inventory;
-        CHECK(!inventory.reserve("order", {{"missing", 1}}));
-        CHECK(!inventory.commit("missing") && !inventory.release("missing"));
-        EXPECT_THROW(std::out_of_range, inventory.stock("missing"));
-    });
-    suite.run("invalid quantities and overflow", [] {
-        Inventory inventory;
-        inventory.add_sku("a", 1);
-        EXPECT_THROW(std::invalid_argument, inventory.reserve("order", {{"a", 0}}));
-        EXPECT_THROW(std::invalid_argument, inventory.receive("a", -1));
-        inventory.add_sku("full", std::numeric_limits<int>::max());
-        EXPECT_THROW(std::overflow_error, inventory.receive("full", 1));
-    });
-    suite.run("concurrent orders cannot reserve the last item twice", [] {
-        Inventory inventory;
-        inventory.add_sku("a", 1);
-        std::atomic<int> accepted{0};
-        std::vector<std::thread> threads;
-        for (int i = 0; i < 8; ++i) {
-            threads.emplace_back([&, i] {
-                if (inventory.reserve(std::to_string(i), {{"a", 1}})) { ++accepted; }
-            });
-        }
-        for (auto& thread : threads) { thread.join(); }
-        CHECK(accepted == 1 && inventory.stock("a").available() == 0);
+        CHECK(inventory.add_sku("A", 1));
+        CHECK(!inventory.add_sku("A", 2));
+        CHECK(!inventory.add_sku("B", -1));
+        CHECK(!inventory.reserve(1, {{"A", -1}}));
+        CHECK(inventory.receive("A", 2));
+        CHECK(inventory.stock("A").on_hand == 3);
+        CHECK(!inventory.receive("missing", 2));
+        CHECK(!inventory.commit(999));
     });
     return suite.finish();
 }

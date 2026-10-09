@@ -1,59 +1,39 @@
 # Amazon Locker
 
-Design an Amazon Locker-inspired package pickup system for a single locker bank.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Slots have unique IDs and small/medium/large capacities. Allocate the smallest compatible free slot.
-2. Deposit a uniquely active package and return its slot, pickup code, and expiration.
-3. Inject a code generator; reject empty or duplicate active codes without occupying a slot.
-4. Pickup requires an unexpired code; successful codes are single-use.
-5. Expired packages remain physically present until collect_expired is called by the courier workflow.
+1. Deposit a package into the smallest available compatible slot.
+2. Use nonnegative numeric package IDs and demonstration pickup codes; return -1 when allocation fails.
+3. Allow one active assignment per package ID.
+4. Pickup returns the package ID, frees the slot and invalidates the code.
 
 ## Scope and assumptions
 
-One in-memory bank; no actual Amazon API, hardware doors, authentication, notifications, or production security. TTL is 1 second through 24 hours. Inject steady_clock time points in nondecreasing processing order. The generator must be bounded and non-reentrant; predictable codes in tests are not production-safe.
+One in-memory locker bank. Construction supplies unique, initially empty slots. AllocationPolicy returns an available compatible slot index or -1. Sequential numeric codes demonstrate lookup, not secure authentication.
 
 ## Interviewee TODOs
 
-- [ ] Keep physical occupancy distinct from code validity.
-- [ ] Maintain consistent assignment/slot identities under concurrent requests.
-- [ ] Inject and validate code generation instead of hardcoding a global counter.
-- [ ] Enforce exact expiration boundaries and deterministic time.
-- [ ] Handle collection without releasing an uncollected package's slot.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Separate slot capacity, package-session data, and locker coordination; explain the code generator's callable Strategy role.
-- [ ] Explore a slot-allocation Strategy and a hardware-door Adapter, identifying the different changes each isolates.
-- [ ] Discuss Observer notifications or State objects while keeping expiry distinct from physical package removal.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Implement SmallestFit against a read-only slot list.
+- [ ] Keep occupancy and code-to-package assignments consistent.
+- [ ] Delegate allocation through AllocationPolicy; implement deposit and one-time pickup.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=03-amazon-locker
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 03-amazon-locker practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=03-amazon-locker` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Introduce door-controller and notification interfaces.
-2. Add secure code generation, authentication, and attempt throttling.
-3. Add multiple banks and courier audit logs.
+- Add expiration, preserving physical occupancy until a courier removes the package.
+- Add secure codes and an Adapter for actual door hardware; notify clients with Observer.
 
-After your attempt: [design explanation](../../solutions/03-amazon-locker/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/03-amazon-locker/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

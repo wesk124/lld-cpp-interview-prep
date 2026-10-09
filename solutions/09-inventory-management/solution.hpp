@@ -1,11 +1,9 @@
 #pragma once
 
-#include <limits>
+#include <algorithm>
 #include <map>
-#include <mutex>
-#include <stdexcept>
 #include <string>
-#include <utility>
+#include <vector>
 
 namespace lld {
 namespace inventory_management {
@@ -13,95 +11,89 @@ namespace inventory_management {
 struct Stock {
     int on_hand;
     int reserved;
-    int available() const noexcept { return on_hand - reserved; }
+    int available() const { return on_hand - reserved; }
 };
-enum class ReservationState { held, committed, released };
 using Quantities = std::map<std::string, int>;
+enum class ReservationState { held, committed, released };
+
+// Observer: notification clients depend on stock events, not inventory internals.
+class StockObserver {
+public:
+    virtual ~StockObserver() {}
+    virtual void on_low_stock(const std::string& sku, int available) = 0;
+};
 
 class Inventory {
 public:
-    void add_sku(const std::string& sku, int quantity) {
-        if (sku.empty() || quantity < 0) { throw std::invalid_argument("SKU and nonnegative quantity required"); }
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (!stocks_.emplace(sku, Stock{quantity, 0}).second) {
-            throw std::invalid_argument("SKU already exists");
-        }
+    explicit Inventory(int low_stock_threshold = 3) : threshold_(low_stock_threshold) {}
+    void subscribe(StockObserver& observer) { observers_.push_back(&observer); }
+    void unsubscribe(StockObserver& observer) {
+        observers_.erase(std::remove(observers_.begin(), observers_.end(), &observer), observers_.end());
     }
-
-    void receive(const std::string& sku, int quantity) {
-        if (quantity <= 0) { throw std::invalid_argument("receipt quantity must be positive"); }
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto& stock = stocks_.at(sku);
-        if (stock.on_hand > std::numeric_limits<int>::max() - quantity) {
-            throw std::overflow_error("stock quantity overflow");
-        }
-        stock.on_hand += quantity;
+    bool add_sku(const std::string& sku, int quantity) {
+        return !sku.empty() && quantity >= 0 && stocks_.emplace(sku, Stock{quantity, 0}).second;
     }
-
-    Stock stock(const std::string& sku) const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return stocks_.at(sku);
+    bool receive(const std::string& sku, int quantity) {
+        auto stock = stocks_.find(sku);
+        if (stock == stocks_.end() || quantity <= 0) return false;
+        stock->second.on_hand += quantity;
+        notify(sku);
+        return true;
     }
+    Stock stock(const std::string& sku) const { return stocks_.at(sku); }
 
-    bool reserve(const std::string& order_id, const Quantities& quantities) {
-        if (order_id.empty() || quantities.empty()) {
-            throw std::invalid_argument("order and item quantities required");
-        }
-        for (const auto& item : quantities) {
-            if (item.first.empty() || item.second <= 0) {
-                throw std::invalid_argument("SKU and positive reservation quantity required");
-            }
-        }
-        std::lock_guard<std::mutex> lock(mutex_);
+    bool reserve(int order_id, const Quantities& quantities) {
+        if (quantities.empty()) return false;
         auto prior = reservations_.find(order_id);
-        if (prior != reservations_.end()) {
-            if (prior->second.quantities != quantities) {
-                throw std::invalid_argument("order ID reused with different quantities");
-            }
-            return prior->second.state != ReservationState::released;
-        }
+        if (prior != reservations_.end())
+            return prior->second.quantities == quantities && prior->second.state != ReservationState::released;
         for (const auto& item : quantities) {
-            auto found = stocks_.find(item.first);
-            if (found == stocks_.end() || found->second.available() < item.second) { return false; }
+            auto stock = stocks_.find(item.first);
+            if (item.second <= 0 || stock == stocks_.end() || stock->second.available() < item.second)
+                return false;
         }
         reservations_.emplace(order_id, Reservation{quantities, ReservationState::held});
-        for (const auto& item : quantities) { stocks_.at(item.first).reserved += item.second; }
+        for (const auto& item : quantities) stocks_.at(item.first).reserved += item.second;
+        for (const auto& item : quantities) notify(item.first);
         return true;
     }
 
-    bool commit(const std::string& order_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto it = reservations_.find(order_id);
-        if (it == reservations_.end() || it->second.state == ReservationState::released) { return false; }
-        if (it->second.state == ReservationState::committed) { return true; }
-        for (const auto& item : it->second.quantities) {
-            auto& stock = stocks_.at(item.first);
+    bool commit(int order_id) {
+        auto order = reservations_.find(order_id);
+        if (order == reservations_.end() || order->second.state == ReservationState::released) return false;
+        if (order->second.state == ReservationState::committed) return true;
+        for (const auto& item : order->second.quantities) {
+            Stock& stock = stocks_.at(item.first);
             stock.on_hand -= item.second;
             stock.reserved -= item.second;
         }
-        it->second.state = ReservationState::committed;
+        order->second.state = ReservationState::committed;
         return true;
     }
 
-    bool release(const std::string& order_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto it = reservations_.find(order_id);
-        if (it == reservations_.end() || it->second.state == ReservationState::committed) { return false; }
-        if (it->second.state == ReservationState::released) { return true; }
-        for (const auto& item : it->second.quantities) { stocks_.at(item.first).reserved -= item.second; }
-        it->second.state = ReservationState::released;
+    bool release(int order_id) {
+        auto order = reservations_.find(order_id);
+        if (order == reservations_.end() || order->second.state == ReservationState::committed) return false;
+        if (order->second.state == ReservationState::released) return true;
+        for (const auto& item : order->second.quantities) stocks_.at(item.first).reserved -= item.second;
+        order->second.state = ReservationState::released;
+        for (const auto& item : order->second.quantities) notify(item.first);
         return true;
     }
 
 private:
-    struct Reservation {
-        Quantities quantities;
-        ReservationState state;
-    };
-    mutable std::mutex mutex_;
+    struct Reservation { Quantities quantities; ReservationState state; };
+    void notify(const std::string& sku) {
+        int available = stocks_.at(sku).available();
+        if (available < threshold_)
+            for (StockObserver* observer : observers_) observer->on_low_stock(sku, available);
+    }
+
+    int threshold_;
     std::map<std::string, Stock> stocks_;
-    std::map<std::string, Reservation> reservations_;
+    std::map<int, Reservation> reservations_;
+    std::vector<StockObserver*> observers_; // Non-owning subscribers.
 };
 
-}  // namespace inventory_management
-}  // namespace lld
+} // namespace inventory_management
+} // namespace lld

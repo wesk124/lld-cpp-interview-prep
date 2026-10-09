@@ -1,133 +1,79 @@
 #pragma once
 
-#include <chrono>
-#include <functional>
 #include <map>
-#include <mutex>
-#include "optional.hpp"
-#include <set>
-#include <stdexcept>
-#include <string>
 #include <utility>
 #include <vector>
 
 namespace lld {
 namespace amazon_locker {
 
-using Clock = std::chrono::steady_clock;
-using TimePoint = Clock::time_point;
-enum class Size { small = 0, medium = 1, large = 2 };
+enum class Size { small, medium, large };
+
 struct Slot {
-    std::string id;
+    int id;
     Size size;
+    bool occupied;
+    Slot(int slot_id, Size slot_size) : id(slot_id), size(slot_size), occupied(false) {}
 };
-struct Assignment {
-    std::string package_id;
-    std::string slot_id;
-    std::string pickup_code;
-    TimePoint deposited_at;
-    TimePoint expires_at;
+
+// Strategy: selection is separate from deposit/pickup coordination.
+class AllocationPolicy {
+public:
+    virtual ~AllocationPolicy() {}
+    virtual int choose(const std::vector<Slot>& slots, Size package_size) const = 0;
+};
+
+class SmallestFit : public AllocationPolicy {
+public:
+    int choose(const std::vector<Slot>& slots, Size package_size) const override {
+        int best = -1;
+        for (std::size_t i = 0; i < slots.size(); ++i)
+            if (!slots[i].occupied && slots[i].size >= package_size &&
+                (best == -1 || slots[i].size < slots[static_cast<std::size_t>(best)].size))
+                best = static_cast<int>(i);
+        return best;
+    }
 };
 
 class Locker {
 public:
-    Locker(std::vector<Slot> slots, std::function<std::string()> code_generator)
-        : slots_(std::move(slots)), codes_(slots_.size()), code_generator_(std::move(code_generator)) {
-        if (!code_generator_) { throw std::invalid_argument("code generator required"); }
-        std::set<std::string> ids;
-        for (const auto& slot : slots_) {
-            if (slot.id.empty() || !valid_size(slot.size) || !ids.insert(slot.id).second) {
-                throw std::invalid_argument("slots require unique IDs and valid sizes");
-            }
-        }
+    Locker(std::vector<Slot> slots, const AllocationPolicy& allocation)
+        : slots_(std::move(slots)), allocation_(allocation), next_code_(1) {}
+
+    int deposit(int package_id, Size size) {
+        if (package_id < 0) return -1;
+        for (const auto& entry : assignments_)
+            if (entry.second.package_id == package_id) return -1;
+        int index = allocation_.choose(slots_, size);
+        if (index < 0 || index >= static_cast<int>(slots_.size())) return -1;
+        int code = next_code_++;
+        assignments_.emplace(code, Assignment{package_id, index});
+        slots_[static_cast<std::size_t>(index)].occupied = true;
+        return code;
     }
 
-    lld::Optional<Assignment> deposit(const std::string& package_id, Size size, TimePoint now,
-                                       std::chrono::seconds ttl) {
-        if (package_id.empty() || !valid_size(size) || ttl.count() <= 0 || ttl > std::chrono::hours(24)) {
-            throw std::invalid_argument("invalid package, size, or TTL (1 second to 24 hours)");
-        }
-        const auto duration = std::chrono::duration_cast<Clock::duration>(ttl);
-        if (now > TimePoint::max() - duration) { throw std::overflow_error("expiration overflow"); }
-        std::lock_guard<std::mutex> lock(mutex_);
-        check_time(now);
-        for (const auto& entry : assignments_) {
-            if (entry.second.package_id == package_id) { return {}; }
-        }
-        std::size_t best = slots_.size();
-        for (std::size_t i = 0; i < slots_.size(); ++i) {
-            if (codes_[i].empty() && static_cast<int>(slots_[i].size) >= static_cast<int>(size) &&
-                (best == slots_.size() || slots_[i].size < slots_[best].size)) {
-                best = i;
-            }
-        }
-        if (best == slots_.size()) { return {}; }
-        std::string code = code_generator_();
-        if (code.empty() || assignments_.count(code) != 0) {
-            throw std::logic_error("generator returned empty or duplicate active code");
-        }
-        lld::Optional<Assignment> result(Assignment{package_id, slots_[best].id, code, now, now + duration});
-        assignments_.emplace(code, *result);  // Finish allocations before publishing occupancy.
-        codes_[best] = std::move(code);
-        return result;
+    int pickup(int code) {
+        auto assignment = assignments_.find(code);
+        if (assignment == assignments_.end()) return -1;
+        int package = assignment->second.package_id;
+        slots_[static_cast<std::size_t>(assignment->second.slot_index)].occupied = false;
+        assignments_.erase(assignment);
+        return package;
     }
 
-    lld::Optional<std::string> pickup(const std::string& code, TimePoint now) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        check_time(now);
-        const auto found = assignments_.find(code);
-        if (found == assignments_.end() || now >= found->second.expires_at) { return {}; }
-        lld::Optional<std::string> package_id(found->second.package_id);
-        clear_slot(code);
-        assignments_.erase(found);
-        return package_id;
-    }
-
-    std::vector<std::string> collect_expired(TimePoint now) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        check_time(now);
-        std::vector<std::string> packages;
-        for (const auto& entry : assignments_) {
-            if (now >= entry.second.expires_at) { packages.push_back(entry.second.package_id); }
-        }
-        for (auto it = assignments_.begin(); it != assignments_.end();) {
-            if (now >= it->second.expires_at) {
-                clear_slot(it->first);
-                it = assignments_.erase(it);
-            } else { ++it; }
-        }
-        return packages;
-    }
-
-    std::size_t available_slots() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::size_t count = 0;
-        for (const auto& code : codes_) { if (code.empty()) { ++count; } }
+    int available_slots() const {
+        int count = 0;
+        for (const auto& slot : slots_) if (!slot.occupied) ++count;
         return count;
     }
 
 private:
-    static bool valid_size(Size size) {
-        return size == Size::small || size == Size::medium || size == Size::large;
-    }
-    void check_time(TimePoint now) {
-        if (has_last_now_ && now < last_now_) { throw std::invalid_argument("clock moved backwards"); }
-        last_now_ = now;
-        has_last_now_ = true;
-    }
-    void clear_slot(const std::string& code) {
-        for (auto& value : codes_) { if (value == code) { value.clear(); return; } }
-        throw std::logic_error("assignment has no occupied slot");
-    }
-
-    mutable std::mutex mutex_;
+    struct Assignment { int package_id; int slot_index; };
     std::vector<Slot> slots_;
-    std::vector<std::string> codes_;
-    std::function<std::string()> code_generator_;
-    std::map<std::string, Assignment> assignments_;
-    TimePoint last_now_{};
-    bool has_last_now_{false};
+    const AllocationPolicy& allocation_; // Caller keeps this policy alive.
+    std::map<int, Assignment> assignments_;
+    int next_code_; // Demonstration codes, not production authentication.
 };
 
-}  // namespace amazon_locker
-}  // namespace lld
+} // namespace amazon_locker
+} // namespace lld

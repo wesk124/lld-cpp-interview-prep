@@ -1,104 +1,96 @@
 #pragma once
 
-#include <algorithm>
 #include <stdexcept>
 #include <vector>
 
 namespace lld {
 namespace connect_four {
 
-enum class Cell { empty, red, yellow };
+using Board = std::vector<std::vector<char>>;
 enum class Status { playing, red_won, yellow_won, draw };
-struct Move {
-    int row;
-    int column;
-    Cell player;
-    Status status;
+
+// Strategy: the game delegates the winning condition.
+class WinRule {
+public:
+    virtual ~WinRule() {}
+    virtual bool wins(const Board& board, int row, int column) const = 0;
+};
+
+class ConnectKRule : public WinRule {
+public:
+    explicit ConnectKRule(int length = 4) : length_(length) {
+        if (length < 2) throw std::invalid_argument("winning length must be at least two");
+    }
+
+    bool wins(const Board& board, int row, int column) const override {
+        const int directions[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+        for (const auto& direction : directions) {
+            int count = 1 + count_direction(board, row, column, direction[0], direction[1])
+                          + count_direction(board, row, column, -direction[0], -direction[1]);
+            if (count >= length_) return true;
+        }
+        return false;
+    }
+
+private:
+    int count_direction(const Board& board, int row, int column, int dr, int dc) const {
+        char piece = board[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)];
+        int count = 0;
+        for (int step = 1; step < length_; ++step) {
+            int next_row = row + step * dr, next_column = column + step * dc;
+            if (next_row < 0 || next_column < 0 ||
+                next_row >= static_cast<int>(board.size()) ||
+                next_column >= static_cast<int>(board[0].size()) ||
+                board[static_cast<std::size_t>(next_row)][static_cast<std::size_t>(next_column)] != piece)
+                break;
+            ++count;
+        }
+        return count;
+    }
+
+    int length_;
 };
 
 class Game {
 public:
-    explicit Game(int rows = 6, int columns = 7, int connect = 4)
-        : rows_(rows), columns_(columns), connect_(connect) {
-        if (rows <= 0 || columns <= 0 || connect < 2 || connect > std::max(rows, columns)) {
-            throw std::invalid_argument("invalid board dimensions or winning length");
-        }
+    Game(const WinRule& rule, int rows = 6, int columns = 7)
+        : rule_(rule), turn_('R'), status_(Status::playing), moves_(0) {
+        if (rows <= 0 || columns <= 0) throw std::invalid_argument("invalid board size");
         board_.assign(static_cast<std::size_t>(rows),
-                      std::vector<Cell>(static_cast<std::size_t>(columns), Cell::empty));
+                      std::vector<char>(static_cast<std::size_t>(columns), '.'));
     }
 
-    Cell cell(int row, int column) const {
-        if (!in_bounds(row, column)) {
-            throw std::out_of_range("cell outside board");
-        }
-        return board_[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)];
-    }
+    bool drop(int column) {
+        if (status_ != Status::playing || column < 0 ||
+            column >= static_cast<int>(board_[0].size())) return false;
+        int row = static_cast<int>(board_.size()) - 1;
+        while (row >= 0 && cell(row, column) != '.') --row;
+        if (row < 0) return false;
 
-    Cell next_player() const noexcept { return turn_; }
-    Status status() const noexcept { return status_; }
-
-    Move drop(int column) {
-        if (column < 0 || column >= columns_) {
-            throw std::out_of_range("column outside board");
-        }
-        if (status_ != Status::playing) {
-            throw std::logic_error("game has ended");
-        }
-        int row = rows_ - 1;
-        while (row >= 0 && cell(row, column) != Cell::empty) {
-            --row;
-        }
-        if (row < 0) {
-            throw std::logic_error("column is full");
-        }
-        const Cell player = turn_;
-        board_[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] = player;
+        board_[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] = turn_;
         ++moves_;
-        const int directions[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
-        for (const auto& direction : directions) {
-            const int length = 1 + count(row, column, direction[0], direction[1], player) +
-                               count(row, column, -direction[0], -direction[1], player);
-            if (length >= connect_) {
-                status_ = player == Cell::red ? Status::red_won : Status::yellow_won;
-                break;
-            }
-        }
-        if (status_ == Status::playing && moves_ == board_.size() * board_.front().size()) {
+        if (rule_.wins(board_, row, column))
+            status_ = turn_ == 'R' ? Status::red_won : Status::yellow_won;
+        else if (moves_ == static_cast<int>(board_.size() * board_[0].size()))
             status_ = Status::draw;
-        }
-        if (status_ == Status::playing) {
-            turn_ = player == Cell::red ? Cell::yellow : Cell::red;
-        }
-        return Move{row, column, player, status_};
+        else
+            turn_ = turn_ == 'R' ? 'Y' : 'R';
+        return true;
     }
+
+    char cell(int row, int column) const {
+        return board_.at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column));
+    }
+    char next_player() const { return turn_; }
+    Status status() const { return status_; }
 
 private:
-    bool in_bounds(int row, int column) const noexcept {
-        return row >= 0 && row < rows_ && column >= 0 && column < columns_;
-    }
-
-    int count(int row, int column, int dr, int dc, Cell player) const {
-        int result = 0;
-        // At most connect_-1 neighbors are necessary in either direction.
-        for (int i = 1; i < connect_; ++i) {
-            row += dr;
-            column += dc;
-            if (!in_bounds(row, column) || cell(row, column) != player) {
-                break;
-            }
-            ++result;
-        }
-        return result;
-    }
-
-    int rows_;
-    int columns_;
-    int connect_;
-    std::vector<std::vector<Cell>> board_;
-    std::size_t moves_{0};
-    Cell turn_{Cell::red};
-    Status status_{Status::playing};
+    Board board_;
+    const WinRule& rule_; // Caller keeps this rule alive.
+    char turn_;
+    Status status_;
+    int moves_;
 };
 
-}  // namespace connect_four
-}  // namespace lld
+} // namespace connect_four
+} // namespace lld

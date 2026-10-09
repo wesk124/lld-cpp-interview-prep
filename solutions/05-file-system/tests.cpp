@@ -4,76 +4,59 @@
 #include "solution.hpp"
 #endif
 #include "test_support.hpp"
-#include <thread>
 
 using namespace lld::file_system;
 
 int main() {
     test::Suite suite;
-    suite.run("nested directories and idempotent mkdir", [] {
-        FileSystem fs;
-        fs.mkdir("/home/user");
-        fs.mkdir("/home/user");
-        CHECK(fs.list("/home").size() == 1);
-        CHECK(fs.list("/home/user").empty());
+    suite.run("Composite sums leaves and nested directories", [] {
+        FileSystem filesystem;
+        std::unique_ptr<Directory> docs(new Directory("docs"));
+        CHECK(docs->add(std::unique_ptr<Node>(new File("notes", "abc"))));
+        CHECK(filesystem.root().add(std::move(docs)));
+        CHECK(filesystem.root().add(std::unique_ptr<Node>(new File("readme", "12345"))));
+        const Node& tree = filesystem.root();
+        CHECK(tree.size() == 8);
+        CHECK(filesystem.size() == 8);
+        CHECK(filesystem.root().child("docs")->size() == 3);
     });
-    suite.run("write and overwrite file", [] {
-        FileSystem fs;
-        fs.mkdir("/docs");
-        fs.write_file("/docs/notes", "first");
-        CHECK(fs.read_file("/docs/notes") == "first");
-        fs.write_file("/docs/notes", "updated");
-        CHECK(fs.read_file("/docs/notes") == "updated");
+    suite.run("lookup, sorted listing and duplicate names", [] {
+        Directory directory("root");
+        CHECK(directory.add(std::unique_ptr<Node>(new File("b", ""))));
+        CHECK(directory.add(std::unique_ptr<Node>(new File("a", ""))));
+        CHECK(!directory.add(std::unique_ptr<Node>(new File("a", "duplicate"))));
+        CHECK(directory.names() == std::vector<std::string>({"a", "b"}));
+        CHECK(directory.child("missing") == nullptr);
+        const Directory& read_only = directory;
+        CHECK(read_only.child("a")->name() == "a");
     });
-    suite.run("lexically ordered directory listing", [] {
-        FileSystem fs;
-        fs.write_file("/z", "");
-        fs.write_file("/a", "");
-        const std::vector<std::string> expected{"a", "z"};
-        CHECK(fs.list("/") == expected);
+    suite.run("file edits and subtree removal", [] {
+        File file("notes", "abc");
+        CHECK(file.read() == "abc");
+        file.write("hello");
+        CHECK(file.size() == 5);
+        Directory root("root");
+        std::unique_ptr<Directory> nested(new Directory("nested"));
+        CHECK(nested->add(std::unique_ptr<Node>(new File("notes", "hello"))));
+        CHECK(root.add(std::move(nested)));
+        CHECK(root.remove("nested"));
+        CHECK(root.size() == 0);
+        CHECK(!root.remove("nested"));
     });
-    suite.run("file-directory boundary errors", [] {
-        FileSystem fs;
-        fs.mkdir("/dir");
-        fs.write_file("/file", "value");
-        EXPECT_THROW(std::logic_error, fs.write_file("/dir", ""));
-        EXPECT_THROW(std::logic_error, fs.read_file("/dir"));
-        EXPECT_THROW(std::logic_error, fs.mkdir("/file/child"));
-        EXPECT_THROW(std::logic_error, fs.list("/file"));
-    });
-    suite.run("parents must exist", [] {
-        FileSystem fs;
-        EXPECT_THROW(std::out_of_range, fs.write_file("/missing/file", ""));
-        EXPECT_THROW(std::out_of_range, fs.read_file("/missing"));
-    });
-    suite.run("safe removal and recursive subtree ownership", [] {
-        FileSystem fs;
-        fs.mkdir("/a/b");
-        fs.write_file("/a/b/file", "data");
-        EXPECT_THROW(std::logic_error, fs.remove("/a"));
-        CHECK(fs.read_file("/a/b/file") == "data");
-        fs.remove("/a", true);
-        CHECK(fs.list("/").empty());
-        EXPECT_THROW(std::invalid_argument, fs.remove("/", true));
-    });
-    suite.run("path normalization and validation", [] {
-        FileSystem fs;
-        fs.mkdir("//a///b/");
-        fs.write_file("/a/b/file", "x");
-        CHECK(fs.read_file("//a/b/file") == "x");
-        EXPECT_THROW(std::invalid_argument, fs.mkdir("relative"));
-        EXPECT_THROW(std::invalid_argument, fs.mkdir("/a/../b"));
-        EXPECT_THROW(std::invalid_argument, fs.write_file("/a/file/", ""));
-        EXPECT_THROW(std::invalid_argument, fs.read_file("/a/b/file/"));
-    });
-    suite.run("serialized concurrent writes", [] {
-        FileSystem fs;
-        std::vector<std::thread> threads;
-        for (int i = 0; i < 8; ++i) {
-            threads.emplace_back([&, i] { fs.write_file("/file-" + std::to_string(i), "data"); });
-        }
-        for (auto& thread : threads) { thread.join(); }
-        CHECK(fs.list("/").size() == 8);
+    suite.run("virtual destruction through owned Node", [] {
+        class TrackedNode : public Node {
+        public:
+            explicit TrackedNode(bool& flag) : Node("tracked"), flag_(flag) {}
+            ~TrackedNode() override { flag_ = true; }
+            std::size_t size() const override { return 0; }
+        private:
+            bool& flag_;
+        };
+        bool destroyed = false;
+        Directory root("root");
+        CHECK(root.add(std::unique_ptr<Node>(new TrackedNode(destroyed))));
+        CHECK(root.remove("tracked"));
+        CHECK(destroyed);
     });
     return suite.finish();
 }

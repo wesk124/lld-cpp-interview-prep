@@ -28,26 +28,13 @@ sanitizers="${LLD_SANITIZERS:-undefined}"
 if [[ "$sanitizers" != "none" ]]; then
     flags+=("-fsanitize=$sanitizers" -fno-sanitize-recover=all)
 fi
-if [[ "$selected" == "all" ]]; then
-    echo "Building optional-value helper tests"
-    "$compiler" "${flags[@]}" "$root_dir/common/optional_tests.cpp" -o "$build_dir/optional-tests"
-    "$build_dir/optional-tests"
-fi
 for example in "${examples[@]}"; do
     if [[ "$selected" != "all" && "$selected" != "$example" ]]; then continue; fi
     found=true
     sources=()
     includes=()
-    if [[ "$example" == "01-parking-lot" ]]; then
-        sources+=("$root_dir/solutions/$example/tests/parking_lot_test.cpp")
-        if [[ "$mode" == "solution" ]]; then
-            sources+=("$root_dir/solutions/$example/src/parking_lot.cpp")
-            includes+=(-I "$root_dir/solutions/$example/include")
-        fi
-    else
-        sources+=("$root_dir/solutions/$example/tests.cpp")
-        if [[ "$mode" == "solution" ]]; then includes+=(-I "$root_dir/solutions/$example"); fi
-    fi
+    sources+=("$root_dir/solutions/$example/tests.cpp")
+    if [[ "$mode" == "solution" ]]; then includes+=(-I "$root_dir/solutions/$example"); fi
     if [[ "$mode" == "practice" ]]; then
         includes+=(-DLLD_PRACTICE=1 -I "$root_dir/questions/$example")
     fi

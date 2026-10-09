@@ -1,12 +1,8 @@
-# Logging Service: Test Plan
+# Logging Service: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Severity filtering and changes to the threshold.
+- [ ] Fanout reaches every Observer; unsubscribed sinks stop receiving records.
+- [ ] StreamSink adapts formatted records to an ostream.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] severity filter
-- [ ] injected timestamp
-- [ ] runtime threshold change
-- [ ] multiple sinks
-- [ ] failure isolation
-- [ ] stream format/error
-- [ ] invalid sink/level
-- [ ] concurrent producer record count
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

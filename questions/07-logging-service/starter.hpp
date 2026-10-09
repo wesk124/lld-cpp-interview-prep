@@ -1,43 +1,45 @@
 #pragma once
-#include <chrono>
+
+#include <map>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
 namespace lld {
 namespace logging_service {
-using TimePoint = std::chrono::system_clock::time_point;
-enum class Level { debug = 0, info = 1, warning = 2, error = 3 };
-struct Record { TimePoint timestamp; Level level; std::string message; };
-struct Delivery { std::size_t delivered; std::size_t failed; };
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
+enum class Level { debug, info, warning, error };
+struct Record { Level level; std::string message; };
 class Sink {
 public:
-    virtual ~Sink() = default;
+    virtual ~Sink() {}
     virtual void write(const Record& record) = 0;
 };
-class MemorySink final : public Sink {
+class MemorySink : public Sink {
 public:
-    void write(const Record& /*record*/) override { todo("store complete records under a lock"); }
-    std::vector<Record> records() const { todo("return a synchronized value snapshot"); }
+    void write(const Record& /*record*/) override { todo("retain record values"); }
+    const std::vector<Record>& records() const { todo("return records"); }
 };
-class StreamSink final : public Sink {
+class StreamSink : public Sink {
 public:
-    explicit StreamSink(std::ostream& /*stream*/) { todo("retain a non-owning stream reference"); }
-    void write(const Record& /*record*/) override { todo("format [LEVEL] message and detect stream failure"); }
+    explicit StreamSink(std::ostream& /*stream*/) { todo("borrow output stream"); }
+    void write(const Record& /*record*/) override { todo("adapt ostream to Sink"); }
 };
 class Logger {
 public:
-    explicit Logger(Level /*minimum*/ = Level::info) { todo("initialize a validated threshold"); }
-    void add_sink(std::shared_ptr<Sink> /*sink*/) { todo("register a shared-lifetime sink"); }
-    void set_minimum(Level /*minimum*/) { todo("update configuration safely"); }
-    Delivery log(Level /*level*/, const std::string& /*message*/, TimePoint /*timestamp*/) {
-        todo("filter, snapshot sinks, fan out without configuration lock, and isolate failures");
-    }
-private:
-    // TODO: Document lifetime ownership and per-sink synchronization.
-    // TODO: Do not promise a global record order across multiple producers/sinks.
+    explicit Logger(Level /*minimum*/ = Level::info) { todo("store severity threshold"); }
+    void add_sink(Sink& /*sink*/) { todo("register a non-owning Observer"); }
+    void remove_sink(Sink& /*sink*/) { todo("unsubscribe sink"); }
+    void set_minimum(Level /*minimum*/) { todo("change severity threshold"); }
+    void log(Level /*level*/, const std::string& /*message*/) { todo("filter and notify every sink"); }
 };
-}  // namespace logging_service
-}  // namespace lld
+
+} // namespace logging_service
+} // namespace lld

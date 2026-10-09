@@ -1,37 +1,42 @@
-# Elevator: Reference Design
+# Elevator: Interview Design
 
-[Question](../../questions/04-elevator/README.md) · [Tests](tests.cpp)
+[Question](../../questions/04-elevator/README.md) · [Core code](solution.hpp) · [Tests](tests.cpp)
 
-## Responsibilities, ownership, and invariants
+## OOP responsibilities and pattern
 
-Elevator owns the car state and ordered stop set. ElevatorBank owns cars by value and an exclusive DispatchPolicy, and serializes external access with one mutex.
+Main pattern: **Strategy**.
 
-A car closes open doors before any movement; servicing the current floor also consumes a tick. Movement and opening at the arrival floor form one transition.
+| Object | Responsibility |
+| --- | --- |
+| `Elevator` | Floor, direction, doors and pending stops. |
+| `ElevatorBank` | Own cars and route requests. |
+| `DispatchPolicy` | Abstract car selection. |
+| `NearestCar / LeastBusyCar` | Alternative selection algorithms. |
 
-LOOK continues in the existing direction until no pending destination remains ahead, then reverses. An idle car chooses its nearest destination with a lower-floor tie break.
+A bank request selects one car through policy.choose and enqueues a stop. step_all advances every car independently.
 
-NearestCarPolicy chooses by distance and stable car-index tie breaking. Its interface accepts hall direction so a richer policy can replace it.
+## Ownership and scope
 
-Request insertion is O(log P) for P stops. The step implementation scans for an idle target and copies a snapshot, so O(P). Bank dispatch is O(C + total pending stops) including snapshots.
+The bank owns its cars by value and borrows the dispatch policy. car(index) returns a read-only reference tied to the bank's lifetime.
 
-No claim is made about real elevator safety or passenger fairness. Requests can starve under continuous arrivals; production routing needs directional hall queues and bounded waiting.
+Single-threaded discrete simulation with valid initial floors in a nonnegative building range. The bank is nonempty. It models destination requests, not passengers or safety-certified hardware.
 
+## Small usage example
 
-## OOP and design patterns
+Within the example's namespace:
 
-- **Strategy (implemented):** `ElevatorBank` is the context, `DispatchPolicy` defines car selection, and `NearestCarPolicy` is one implementation. The bank owns its policy and cars; dispatch can vary independently of each car's movement rules.
-- **OOP responsibilities:** `Elevator` encapsulates stops, direction, floor, and doors. `ElevatorBank` coordinates access to multiple cars. LOOK is a scheduling algorithm; the current enum-based transitions are not GoF State delegation.
-- **State (follow-up):** Normal, emergency, and maintenance state objects could define permitted requests and actions, with explicit door/movement transition rules.
-- **Observer (follow-up):** Displays and arrival listeners could consume car events without being part of the car's movement logic.
+```cpp
+NearestCar policy;
+ElevatorBank bank(10, {0, 8}, policy);
+std::size_t car = bank.request(2); // 0
+bank.step_all(); // car 0 moves to floor 1
+```
+
+Stop insertion is O(log pending); nearest/least-busy selection is O(cars). Idle target selection scans pending stops.
+
+## Follow-up discussion
+
+- Add direction-aware hall calls, capacity and a waiting-time policy.
+- Use State for emergency/maintenance behavior and Observer for floor displays.
 
 [Pattern map and catalog](../../docs/design-patterns.md)
-
-## Scope
-
-A simulation, not safety-certified hardware. Single-car Elevator access must be externally serialized; ElevatorBank provides thread-safe orchestration. The nearest-car policy ignores hall direction after validation, and stop requests represent destinations rather than passengers. No capacity, emergency controls, or starvation guarantee.
-
-## Extend it yourself
-
-- Make dispatch direction-aware and account for pending workload.
-- Separate up/down hall queues and enforce bounded waiting.
-- Model capacity, emergency stops, and hardware door sensors.

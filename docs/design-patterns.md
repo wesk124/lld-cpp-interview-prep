@@ -1,44 +1,50 @@
 # OOP and Design Patterns
 
-These exercises develop object-oriented design through responsibilities, interfaces, ownership, and changing requirements. A useful pattern explanation names the participating objects and the change their collaboration supports.
+The core examples are small enough to explain and implement in a 45–60-minute round. Each demonstrates a relevant pattern in working code. The catalog below is a reference, not a checklist to fit into one solution.
 
-## OOP concepts in the examples
+## OOP concepts
 
-| Concept | What to explain | Example |
+| Concept | Concrete example |
+| --- | --- |
+| Encapsulation | Game owns board/turn/status; Inventory owns stock and reservation transitions. |
+| Abstraction | PricingPolicy, WinRule, AllocationPolicy, DispatchPolicy and RateLimiter describe varying behavior. |
+| Polymorphism | A context calls its interface without choosing a concrete implementation. |
+| Composition | A bank owns cars; a directory owns child nodes. |
+| Borrowing | Pricing, dispatch and rate-limit policies are supplied by reference and outlive their clients. |
+| Exclusive ownership | Directory owns children through unique_ptr<Node>, with a virtual base destructor. |
+| Value semantics | Numeric IDs and copied booking/stock values avoid accidental shared ownership. |
+
+SOLID discussions are concrete: coherent responsibilities, a change isolated by an interface, interchangeable implementations honoring a contract, and dependencies supplied by the caller.
+
+## Patterns actually implemented
+
+| Example | Pattern | Participants |
 | --- | --- | --- |
-| Encapsulation | Which object protects the state and its invariants? | `Game::drop` coordinates the board, turn, and terminal status; `Inventory` coordinates stock and reservations. |
-| Abstraction | What behavior does a caller need without knowing the implementation? | `PricingPolicy::calculate`, `DispatchPolicy::choose`, and `Sink::write`. |
-| Inheritance and substitution | Can each derived object honor the base interface and its behavioral contract? | `HourlyPricingPolicy` implements `PricingPolicy`; `MemorySink` and `StreamSink` implement `Sink`. |
-| Polymorphism | Which behavior changes when a different implementation is supplied? | A `ParkingLot` invokes its pricing policy through the base interface. |
-| Composition | Which objects collaborate, and who owns them? | `ElevatorBank` owns cars and a dispatch policy; `Directory` owns child nodes. |
-| Dependency injection | Where are collaborators supplied, and how can tests replace them? | Constructor-supplied pricing/dispatch policies and the locker's code-generation callable. |
-| Value semantics | Which results can be copied without borrowing mutable internal state? | `Move`, `Ticket`, `Booking`, and `Stock` snapshots. |
+| [Parking Lot](../solutions/01-parking-lot/design.md) | **Strategy** | `ParkingSpot`, `Ticket`, `ParkingLot`, `PricingPolicy` |
+| [Connect Four](../solutions/02-connect-four/design.md) | **Strategy** | `Game`, `WinRule`, `ConnectKRule` |
+| [Amazon Locker](../solutions/03-amazon-locker/design.md) | **Strategy** | `Slot`, `Locker`, `AllocationPolicy`, `SmallestFit` |
+| [Elevator](../solutions/04-elevator/design.md) | **Strategy** | `Elevator`, `ElevatorBank`, `DispatchPolicy`, `NearestCar / LeastBusyCar` |
+| [File System](../solutions/05-file-system/design.md) | **Composite** | `Node`, `File`, `Directory`, `FileSystem` |
+| [Movie Ticket Booking](../solutions/06-movie-ticket-booking/design.md) | **Strategy** | `BookingService`, `Booking`, `SeatPricing`, `PerSeatPricing / BookingFeePricing` |
+| [Logging Service](../solutions/07-logging-service/design.md) | **Observer + Adapter** | `Logger`, `Sink`, `MemorySink`, `StreamSink` |
+| [Rate Limiter](../solutions/08-rate-limiter/design.md) | **Strategy** | `RateLimiter`, `TokenBucket`, `FixedWindow`, `RequestGate` |
+| [Inventory Management](../solutions/09-inventory-management/design.md) | **Observer** | `Stock`, `Inventory`, `ReservationState`, `StockObserver` |
 
-For SOLID discussions, connect each principle to a concrete decision: coherent responsibilities (SRP), adding a pricing policy through the interface (OCP), honoring that interface's contract (LSP), small client-facing interfaces (ISP), and depending on supplied policy abstractions (DIP). These are discussion tools rather than a class-count target.
+Strategy separates an interchangeable algorithm from the object coordinating its use. The rate-limiter strategies have different admission guarantees; a common interface does not make those guarantees identical.
 
-## Pattern map for the nine examples
+Composite gives both files and directories the virtual size operation; a directory recursively delegates to child Nodes. Observer publishes log/stock events to registered interfaces. StreamSink is an Adapter for an existing ostream.
 
-The **present** column describes the reference code. The **follow-up** column proposes design exercises; those patterns are not implemented there. Some examples emphasize encapsulation and explicit state transitions without a GoF pattern.
+Enum-based lifecycle transitions are not the GoF State pattern. Token bucket and LOOK are algorithms; they become participants in a pattern through how objects collaborate. RAII, mutexes and dependency injection are techniques rather than GoF pattern names.
 
-| Example | Present in the reference | Follow-up patterns and the change they support |
-| --- | --- | --- |
-| [Parking Lot](../solutions/01-parking-lot/design.md) | **Strategy**: `ParkingLot` owns a `PricingPolicy`; `HourlyPricingPolicy` supplies the calculation. | **Decorator** to compose discounts or surcharges around a pricing policy; **Observer** for capacity updates. |
-| [Connect Four](../solutions/02-connect-four/design.md) | Encapsulated rules engine and an enum-based lifecycle. | **Strategy** for human/AI move selection; **Command** for move execution and undo; **State** if lifecycle behavior grows. |
-| [Amazon Locker](../solutions/03-amazon-locker/design.md) | **Strategy via a callable**: `Locker` receives a replaceable code generator. Allocation remains a fixed algorithm. | **Strategy** for allocation; **Adapter** for door hardware; **Observer** for pickup/expiry notifications; **State** for a richer package lifecycle. |
-| [Elevator](../solutions/04-elevator/design.md) | **Strategy**: `ElevatorBank` delegates car selection to `DispatchPolicy` / `NearestCarPolicy`. Door and direction transitions use enums. | **State** for normal/emergency/maintenance behavior; **Observer** for displays and arrival notifications. |
-| [File System](../solutions/05-file-system/design.md) | **Composite-style hierarchy**: `Directory` contains `Node` children, including `File` and other directories. **Facade**: `FileSystem` exposes path-based operations. | **Visitor** for new tree-wide operations; **Command** for undoable edits. |
-| [Movie Ticket Booking](../solutions/06-movie-ticket-booking/design.md) | A service coordinating seat ownership and an explicit `HoldStatus` lifecycle. | **State** for richer hold behavior; **Strategy** for pricing; **Adapter** for an external payment API. |
-| [Logging Service](../solutions/07-logging-service/design.md) | **Adapter**: `StreamSink` exposes an `ostream` as a `Sink`. **Observer-style fanout**: `Logger` pushes records to registered sinks. | **Decorator** for redaction/formatting wrappers; **Composite** for sink groups that also implement `Sink`. |
-| [Rate Limiter](../solutions/08-rate-limiter/design.md) | Encapsulated per-client state and one token-bucket algorithm. | **Strategy** for interchangeable admission algorithms; **Decorator** for adding admission checks around a service interface. |
-| [Inventory Management](../solutions/09-inventory-management/design.md) | Encapsulated `Stock` values and an enum-based reservation lifecycle. | **Strategy** for warehouse selection; **Observer** for stock events; **State** for an expanded reservation lifecycle. |
+## Core versus follow-up
 
-A state machine implemented with enums and conditionals is different from the GoF **State** pattern, where a context delegates behavior to state objects. Similarly, a token bucket and LOOK scheduling are algorithms; mutexes, RAII, and dependency injection are techniques or idioms rather than GoF pattern names.
+The core keeps numeric IDs, direct containers, small interfaces and a complete workflow. Payments, durable transactions, expiration, distributed coordination and asynchronous callbacks are follow-ups when the interviewer asks for them.
 
-The filesystem implements the Composite ownership structure with a small `Node::is_directory` interface. It does not currently put every file/directory operation behind a uniform recursive `Node` operation. The logger's fanout synchronously attempts every sink; it has no subscription-removal API and does not implement a Chain of Responsibility that stops at a handling sink.
+Most examples are single-threaded and borrow collaborators with explicitly documented lifetimes. Rate Limiter includes one mutex per policy because atomic admission is part of its core.
 
 ## GoF pattern catalog
 
-This catalog lists all 23 patterns for reference. The possible applications below are study ideas, not claims about existing implementations or requirements to use them.
+This catalog lists all 23 patterns for reference. The possible applications below are study ideas; the main pattern map above identifies actual implementations.
 
 ### Creational: how objects are created
 
@@ -58,7 +64,7 @@ This catalog lists all 23 patterns for reference. The possible applications belo
 | Bridge | Let an abstraction and its implementation vary independently. | Separate locker-control features from alternative hardware communication backends. |
 | Composite | Represent a part-whole tree through a common component interface. | File/directory nodes, or a group of sinks implementing `Sink`. |
 | Decorator | Add behavior by wrapping an object behind the same interface. | A redacting sink or a pricing policy that adds a surcharge. |
-| Facade | Expose a simpler entry point to collaborating components. | `FileSystem` hides node navigation, path validation, and tree operations behind path-based methods. |
+| Facade | Expose a simpler entry point to collaborating components. | A follow-up path-based filesystem API could hide node navigation and validation. |
 | Flyweight | Share immutable intrinsic data while keeping per-use state separate. | Share seat-category metadata while keeping each show's seat ownership separate. |
 | Proxy | Control access to another object behind its interface. | Add authorization or remote-access handling around a booking service. |
 
@@ -78,12 +84,10 @@ This catalog lists all 23 patterns for reference. The possible applications belo
 | Template Method | Define an algorithm skeleton with overridable steps in a base class. | A delivery workflow with variable authentication and notification steps. |
 | Visitor | Add operations to an object hierarchy using visitor dispatch. | Filesystem size reports and exports, accepting the cost of updating visitors when node kinds change. |
 
-## Explain a pattern in an interview
+## Explain the pattern in an interview
 
-Start with the anticipated change, then name the interface, concrete collaborators, and owner. For example:
+> Hourly and flat fees vary independently of spot allocation. ParkingLot borrows a PricingPolicy and calls fee(elapsed_minutes). This is Strategy. The caller keeps the policy alive, and checkout calculates the fee before releasing occupancy.
 
-> Weekend pricing changes fee calculation. `ParkingLot` owns a `PricingPolicy` and calls `calculate`; another implementation can supply weekend rules. This is Strategy. The policy runs inside the checkout lock, so its contract also includes bounded, non-reentrant execution.
+Then name one tradeoff. The interface adds indirection but isolates the expected change. A calendar-based rule would need more input than elapsed minutes; describe that interface change rather than assuming every future rule fits.
 
-Then discuss the tradeoff: more interfaces and indirection versus a change that can be isolated and tested. An enum-based lifecycle can remain a clear choice when a small number of transitions fits comfortably in one object.
-
-[Pattern quiz](../quizzes/design-patterns-questions.md) · [Interview playbook](interview-playbook.md) · [Questions](../questions/README.md)
+[Pattern quiz](../quizzes/design-patterns-questions.md) · [Interview playbook](interview-playbook.md)

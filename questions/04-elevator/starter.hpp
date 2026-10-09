@@ -1,53 +1,57 @@
 #pragma once
+
+#include <map>
 #include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
 namespace lld {
 namespace elevator {
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
 enum class Direction { idle, up, down };
-enum class Door { closed, open };
-struct Snapshot { int floor; Direction direction; Door door; std::vector<int> pending; };
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
 class Elevator {
 public:
-    explicit Elevator(int /*top_floor*/, int /*initial_floor*/ = 0) {
-        todo("validate floor bounds and initialize an idle car");
-    }
-    void request_stop(int /*floor*/) { todo("validate and coalesce stop requests"); }
-    Snapshot snapshot() const { todo("return a value snapshot"); }
-    Snapshot step() {
-        todo("close doors, move at most one floor, and serve requests with LOOK ordering");
-    }
-private:
-    // TODO: Track floor, direction, door, and pending stops without global state.
+    Elevator(int /*top_floor*/, int /*initial_floor*/ = 0) { todo("initialize car state"); }
+    void request_stop(int /*floor*/) { todo("validate floor and coalesce stop requests"); }
+    void step() { todo("close doors, select direction, move one floor and service stops"); }
+    int floor() const { todo("return current floor"); }
+    bool door_open() const { todo("return door state"); }
+    Direction direction() const { todo("return direction"); }
+    std::size_t pending() const { todo("return pending stop count"); }
 };
 class DispatchPolicy {
 public:
-    virtual ~DispatchPolicy() = default;
-    virtual std::size_t choose(const std::vector<Snapshot>& cars, int floor, Direction direction) const = 0;
+    virtual ~DispatchPolicy() {}
+    virtual std::size_t choose(const std::vector<Elevator>& cars, int floor) const = 0;
 };
-class NearestCarPolicy final : public DispatchPolicy {
+class NearestCar : public DispatchPolicy {
 public:
-    std::size_t choose(const std::vector<Snapshot>& /*cars*/, int /*floor*/,
-                       Direction /*direction*/) const override {
-        todo("choose nearest car with index-based tie breaking");
+    std::size_t choose(const std::vector<Elevator>& /*cars*/, int /*floor*/) const override {
+        todo("choose nearest car with first-index tie break");
+    }
+};
+class LeastBusyCar : public DispatchPolicy {
+public:
+    std::size_t choose(const std::vector<Elevator>& /*cars*/, int /*floor*/) const override {
+        todo("choose car with fewest pending stops");
     }
 };
 class ElevatorBank {
 public:
     ElevatorBank(int /*top_floor*/, const std::vector<int>& /*initial_floors*/,
-                 std::unique_ptr<DispatchPolicy> /*policy*/) {
-        todo("own cars and a replaceable dispatch strategy");
-    }
-    std::size_t request(int /*floor*/, Direction /*direction*/) {
-        todo("validate a hall call and route it to one car");
-    }
-    void select_floor(std::size_t /*car*/, int /*floor*/) { todo("handle a car's internal button"); }
-    std::vector<Snapshot> step_all() { todo("serialize one simulation tick"); }
-    std::vector<Snapshot> snapshots() const { todo("return synchronized car snapshots"); }
-private:
-    // TODO: Put synchronization at the bank boundary; never move with open doors.
+                 const DispatchPolicy& /*policy*/) { todo("own cars and borrow dispatch Strategy"); }
+    std::size_t request(int /*floor*/) { todo("delegate car selection and enqueue stop"); }
+    void select_floor(std::size_t /*car*/, int /*floor*/) { todo("enqueue an in-car selection"); }
+    void step_all() { todo("advance every car"); }
+    const Elevator& car(std::size_t /*index*/) const { todo("return the selected car"); }
 };
-}  // namespace elevator
-}  // namespace lld
+
+} // namespace elevator
+} // namespace lld

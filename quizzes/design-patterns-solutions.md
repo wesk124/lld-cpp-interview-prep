@@ -1,21 +1,21 @@
-# OOP and Design-Pattern Quiz: Explanations
+# OOP and Pattern Explanations
 
-[Questions](design-patterns-questions.md) · [Study guide](../docs/design-patterns.md)
+1. **Parking Lot:** ParkingLot is the context, PricingPolicy the interface, and HourlyPricing/FlatPricing the implementations. The lot borrows the policy; the caller owns its lifetime.
 
-1. **Parking Lot — Strategy; Decorator as a follow-up.** `ParkingLot` owns a `PricingPolicy` through `unique_ptr` and calls `calculate`. A weekend policy can implement that contract. A surcharge decorator would also implement `PricingPolicy` while owning and delegating to an inner policy, then augmenting its quote. Composition introduces ordering and rounding decisions; ownership and the lock-held policy contract remain explicit.
+2. **Connect Four:** Game delegates winning behavior to WinRule / ConnectKRule. Status is an enum-based lifecycle, not delegated State objects.
 
-2. **Connect Four — enum-based lifecycle; Strategy and Command as follow-ups.** The existing `Game` owns the board and enforces state transitions directly. GoF State would introduce a state interface and delegate behavior to state objects. A move-selection Strategy could separate human/AI decisions from game rules. A drop Command could retain enough prior state to undo a legal move, including the turn, move count, and terminal status. Extra objects are justified by the added behavior, not the enum alone.
+3. **Amazon Locker:** Selection can vary without changing deposit/pickup and assignment bookkeeping. SmallestFit returns a compatible slot index.
 
-3. **Amazon Locker — callable Strategy; Adapter as a follow-up.** The supplied `std::function<std::string()>` lets code-generation behavior vary without changing deposit coordination. The allocation algorithm is still fixed. A door-controller Adapter could translate the domain's open/status operations into vendor calls. Hardware errors and physical occupancy still need domain rules; interface translation alone does not resolve them.
+4. **Elevator:** DispatchPolicy selects a car for the bank. LOOK orders a car's destinations. The object collaboration is Strategy; LOOK itself is an algorithm.
 
-4. **Elevator — Strategy for dispatch; State as a follow-up.** `ElevatorBank` owns a `DispatchPolicy`, and `NearestCarPolicy` implements car selection. LOOK is the current car's scheduling algorithm. A State design would delegate mode-specific actions to objects such as normal/emergency/maintenance states. It also needs explicit transition rules and door/movement invariants; simply naming more classes does not provide those guarantees.
+5. **File System:** Node is the component, File the leaf and Directory the composite. Virtual size returns file bytes or recursively totals child Nodes.
 
-5. **File System — Composite-style structure; Visitor as a follow-up.** `Node` is the component, `File` the leaf, and `Directory` the composite owning child `Node` objects. The common interface currently exposes node kind, while most operations live in `FileSystem`, so it is a small Composite-style hierarchy rather than a broad uniform operation interface. A Visitor would add `accept`/type-specific visit operations for reporting. Adding operations becomes easier, but adding a node type usually requires changing the visitor interface and its implementations.
+6. **Movie Ticket Booking:** SeatPricing computes fees through PerSeatPricing/BookingFeePricing. BookingService validates and owns seat/booking state. It borrows the pricing collaborator.
 
-6. **Movie Ticket Booking — Strategy for pricing; Adapter for payment.** A pricing interface can vary fee rules, while a payment adapter translates the external provider's API. State objects could organize hold behavior, but double-booking prevention still depends on atomic conflict checking and seat-ownership publication. Callback/I/O placement, failed payment compensation, and retry semantics require separate decisions.
+7. **Logging Service:** Logger publishes to registered Sink observers. MemorySink receives/stores values; StreamSink adapts ostream to Sink. Unsubscribe does not destroy a borrowed sink.
 
-7. **Logging Service — Observer-style fanout; Adapter; Decorator as a follow-up.** The logger pushes a record to all registered sinks rather than stopping at one handler. `StreamSink` adapts `ostream` output to `Sink::write`. A redacting sink decorator would implement `Sink`, transform a copied record, and forward it to an owned inner sink. Wrapper ordering, synchronization, and failure reporting need defined behavior.
+8. **Rate Limiter:** It borrows RateLimiter and invokes allow through that interface. TokenBucket and FixedWindow can be supplied without editing gate code, though their quota semantics differ.
 
-8. **Rate Limiter — algorithm today; Strategy as a follow-up.** The reference has one concrete `TokenBucketLimiter`, so it does not currently select algorithms through a Strategy interface. A `RateLimitPolicy` contract could expose admission, with token-bucket and sliding-window implementations supplied to a service. Configuration, request costs, time semantics, and each policy's atomic state update need compatible contracts; an interface does not make distinct algorithms promise identical quota behavior.
+9. **Inventory Management:** Inventory publishes low-stock facts through StockObserver instead of naming a notification implementation. It still owns reservation accounting, whole-order validation and idempotent transitions.
 
-9. **Inventory Management — Observer as a follow-up.** Inventory can record committed stock events and deliver them to interested observers after releasing its lock. This avoids arbitrary callbacks causing reentrancy or extending the critical section. Capturing events consistently with the mutation, preserving delivery ordering if needed, and handling delivery failures are additional design work. `Inventory` still protects multi-SKU atomicity, `0 <= reserved <= on_hand`, and idempotent reservation transitions; notification failures cannot silently undo committed stock.
+[Questions](design-patterns-questions.md) · [Pattern guide](../docs/design-patterns.md)

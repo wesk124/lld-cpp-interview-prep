@@ -1,55 +1,39 @@
-# LLD Interview Playbook
+# 45–60-Minute OOP Interview Playbook
 
-## 1. Clarify before modeling
+## 1. Clarify the small workflow — 5 minutes
 
-Ask about actors, primary workflows, capacity, persistence, concurrency, failure behavior, and what is explicitly out of scope. Repeat the agreed scope in one or two sentences.
+For Parking Lot, clarify vehicle compatibility, allocation, pricing and checkout. State whether the base model is single-threaded and in memory. Record more elaborate features as possible follow-ups.
 
-For a parking lot, useful questions include:
+## 2. Model responsibilities and the pattern — 10 minutes
 
-- Which vehicle and spot types exist?
-- Can a smaller vehicle use a larger spot?
-- How is pricing calculated?
-- Are reservations, multiple entrances, and persistence required?
-- Can park and exit requests happen concurrently?
+Name a few objects and one invariant per important state transition. For example:
 
-## 2. Identify behavior, not just nouns
+- ParkingSpot manages compatibility and occupancy.
+- ParkingLot coordinates numeric tickets and spot assignment.
+- PricingPolicy varies fee calculation: Strategy.
 
-Start from use cases. Assign each behavior to the object with the information required to perform it. Behaviors and invariants help decide which nouns deserve their own classes.
+The interface isolates fee rules from allocation. HourlyPricing and FlatPricing demonstrate the substitution.
 
-State important invariants:
+## 3. Implement one complete workflow — 25 minutes
 
-- One spot contains at most one vehicle.
-- One active ticket maps to exactly one occupied spot.
-- Checkout removes the active ticket and frees its spot atomically.
+Write park and checkout end-to-end. Use direct data structures and numeric IDs for identification. The reference examples use ordinary C++11 features and a small public API.
 
-## 3. Make ownership explicit
+Explain ownership as you code: the lot owns its spots and tickets but borrows its pricing policy. The policy outlives the lot. Filesystem children have a different lifetime: directories exclusively own them through unique_ptr.
 
-For every relationship, say whether it is ownership, observation, or identification. Values and `std::unique_ptr` express exclusive ownership; `std::shared_ptr` expresses shared lifetime ownership. Stable IDs often avoid dangling cross-object pointers.
+## 4. Test and explain — 10 minutes
 
-## 4. Isolate expected change
+Cover the main path, a boundary and a failure:
 
-Introduce an interface when a requirement is expected to vary. Pricing is a good Strategy candidate because hourly, weekend, event, and membership policies can change independently of parking allocation.
+- park, then checkout;
+- 60 versus 61 minutes of hourly pricing;
+- full capacity, duplicate plate or invalid ticket.
 
-An abstraction is easier to justify when you can finish this sentence:
+Explain the core invariant and the cost of a scan. Ordinary interview-scale configurations keep arithmetic and identifiers simple.
 
-> This abstraction isolates changes to ____ from ____.
+## 5. Discuss one follow-up — remaining time
 
-Use the [OOP and design-pattern guide](design-patterns.md) to connect a pattern to its participants: the context, interface, implementations, and owner. Explain which pattern is already present and which would support a follow-up requirement. For example, `DispatchPolicy` is Strategy; enum-based elevator transitions could become State objects if their behavior grows. Describe the change and tradeoff before adding the extra objects.
+For example, add a discount decorator or concurrent entrances. A mutex would span the whole park/checkout transition, not just individual map accesses. Calendar-based pricing needs a richer policy input than elapsed minutes alone.
 
-## 5. Implement a vertical slice
+The goal is a clear design that works within the agreed scope. More classes and more named patterns are not automatically a stronger answer.
 
-Write enough code to demonstrate the main workflow end-to-end. Favor compilable interfaces and one correct path over a large collection of empty classes.
-
-## 6. Close with operational concerns
-
-Discuss:
-
-- invalid inputs and state transitions
-- shared mutable state and lock boundaries
-- persistence and recovery if relevant
-- deterministic testing
-- the first change you would make for production scale
-
-## C++ signals interviewers notice
-
-`enum class`, `const`, `explicit`, `override`, RAII, value semantics, and virtual destructors can help express a design. Explain the lifetime and ownership behind values, smart pointers, references, and stable IDs, and discuss risks such as slicing or unintended shared state.
+[Pattern guide](design-patterns.md) · [Review checklist](review-checklist.md)

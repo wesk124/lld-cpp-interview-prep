@@ -1,59 +1,59 @@
-# Nine-Example Scenario Quiz
+# Interview-Core Scenario Quiz
 
-Answer before opening the separate solution file. These questions test invariants and tradeoffs, not pattern-name memorization.
+Use the current small core contracts, not the earlier extended APIs.
 
 ## Parking Lot
 
-1. A custom pricing policy throws during checkout. Should the spot become available?
-2. A car cannot use the remaining motorcycle spot. Is the lot necessarily full?
-3. Why use stable spot IDs in tickets rather than vector element pointers?
+1. A ticket has an integer ID. What would a string prefix add to the core design?
+2. An exit precedes entry. Should the spot be freed?
+3. Where does a flat fee belong?
 
 ## Connect Four
 
-1. After an illegal move into a full column, whose turn is it?
-2. Must you rescan the whole board to detect a win after a legal move?
-3. Why maintain a move count as well as the board?
+1. A move targets a full column. Whose turn is next?
+2. Why check lines through the newest piece?
+3. Which object decides whether a board position wins?
 
 ## Amazon Locker
 
-1. A pickup code expires at 12:00. Can another package use that slot at 12:01 without courier collection?
-2. The code generator returns an active code again. Should deposit silently overwrite the old assignment?
-3. Would the deterministic counter used in tests be suitable for production pickup authentication?
+1. Why choose the smallest compatible slot?
+2. Can the same pickup code retrieve a package twice?
+3. Are sequential integer pickup codes secure authentication?
 
 ## Elevator
 
-1. The car reaches floor 3, opens its doors, and has another stop at 5. May the next tick move to 4?
-2. A car is moving up with a pending stop above it; a new request arrives below. Does LOOK reverse immediately?
-3. Does a nearest-car dispatcher automatically solve passenger-direction matching and starvation?
+1. A car opened its doors at a stop. Can the next step also move?
+2. Does LOOK reverse immediately for a newly requested stop behind the car?
+3. Which two selection policies use the same interface?
 
 ## File System
 
-1. Who should own a directory's child nodes?
-2. Can writing /a/b/file succeed when /a exists but /a/b does not?
-3. Why should the public read/list APIs return values rather than mutable Node pointers?
+1. Why can a caller ask either a file or directory for size through Node?
+2. Who owns a directory's children?
+3. Can a borrowed child pointer be used after removing its subtree?
 
 ## Movie Ticket Booking
 
-1. Two callers simultaneously request the last seat. What must be inside the same critical section?
-2. A hold expires at time T. Is confirmation at T valid?
-3. Why preserve terminal hold states instead of releasing seats whenever an old ID is cancelled?
+1. One of two requested seats is already booked. May the other be taken?
+2. Why calculate price before marking seats?
+3. Does the base implementation prevent concurrent double booking?
 
 ## Logging Service
 
-1. Should Logger retain its configuration mutex while calling arbitrary Sink::write code?
-2. One sink throws. Must the remaining sinks lose the record?
-3. Do two synchronized sinks imply all threads' records appear in identical order in both sinks?
+1. Does a record stop after the first sink accepts it?
+2. What does StreamSink adapt?
+3. Does removing a sink destroy it?
 
 ## Rate Limiter
 
-1. A bucket has capacity 5 and refills at 2 tokens/second. It is empty; 1.5 seconds pass. How many tokens are available?
-2. Does a token bucket guarantee at most N requests in every fixed one-second window?
-3. Why must refill and token subtraction be atomic together?
+1. A bucket is empty and refills at 2 tokens/second. What is available after 1.5 seconds?
+2. Do TokenBucket and FixedWindow provide identical admission guarantees?
+3. Which operations belong under the same mutex?
 
 ## Inventory Management
 
-1. An order reserves two SKUs; the second SKU has insufficient quantity. May the first SKU remain reserved?
-2. An identical reserve or commit request is retried with the same order ID. Should stock change twice?
-3. An item has on_hand=10 and reserved=4. What is available, and what changes when all four are committed?
+1. A second SKU is unavailable. May the first SKU remain reserved?
+2. What changes when a reservation of four is committed from on_hand=10, reserved=4?
+3. Where do low-stock delivery rules live relative to accounting?
 
 [Answer key](examples-solutions.md)

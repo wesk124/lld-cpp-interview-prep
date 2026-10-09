@@ -5,7 +5,6 @@
 #endif
 #include "test_support.hpp"
 #include <atomic>
-#include <limits>
 #include <thread>
 #include <vector>
 
@@ -13,58 +12,51 @@ using namespace lld::rate_limiter;
 
 int main() {
     test::Suite suite;
-    suite.run("initial burst and denial", [] {
-        TokenBucketLimiter limiter(3, 1.0);
-        for (int i = 0; i < 3; ++i) { CHECK(limiter.allow("a", TimePoint{})); }
-        CHECK(!limiter.allow("a", TimePoint{}));
+    suite.run("continuous refill, weighted requests and capacity cap", [] {
+        TokenBucket bucket(5, 2);
+        CHECK(bucket.allow(1, 0, 5));
+        CHECK(!bucket.allow(1, 0));
+        CHECK(bucket.allow(1, 1500, 3));
+        CHECK(!bucket.allow(1, 1500));
+        CHECK(bucket.allow(1, 10000, 5));
+        CHECK(!bucket.allow(1, 10000));
     });
-    suite.run("fractional refill reaches an exact boundary", [] {
-        TokenBucketLimiter limiter(1, 2.0);
-        CHECK(limiter.allow("a", TimePoint{}));
-        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::milliseconds(250)));
-        CHECK(limiter.allow("a", TimePoint{} + std::chrono::milliseconds(500)));
+    suite.run("client isolation and backward time", [] {
+        TokenBucket bucket(2, 1);
+        CHECK(bucket.allow(1, 1000, 2));
+        CHECK(bucket.allow(2, 1000, 2));
+        CHECK(!bucket.allow(1, 999));
+        CHECK(!bucket.allow(1, 1000, 3));
+        CHECK(!bucket.allow(1, 1000, 0));
+        CHECK(bucket.allow(1, 2000));
     });
-    suite.run("refill is capped at burst capacity", [] {
-        TokenBucketLimiter limiter(2, 1.0);
-        CHECK(limiter.allow("a", TimePoint{}, 2));
-        CHECK(limiter.allow("a", TimePoint{} + std::chrono::hours(1), 2));
-        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::hours(1)));
+    suite.run("one Strategy interface, different quota semantics", [] {
+        TokenBucket tokens(5, 2);
+        FixedWindow windows(5, 1000);
+        RequestGate token_gate(tokens), window_gate(windows);
+        CHECK(token_gate.admit(1, 0, 5));
+        CHECK(window_gate.admit(1, 0, 5));
+        CHECK(token_gate.admit(1, 500));
+        CHECK(!window_gate.admit(1, 500));
+        CHECK(window_gate.admit(1, 1000, 5));
+        CHECK(!window_gate.admit(1, 1000));
     });
-    suite.run("weighted requests do not borrow future tokens", [] {
-        TokenBucketLimiter limiter(4, 1.0);
-        CHECK(limiter.allow("a", TimePoint{}, 3));
-        CHECK(!limiter.allow("a", TimePoint{}, 2));
-        CHECK(limiter.allow("a", TimePoint{}, 1));
-        CHECK(!limiter.allow("a", TimePoint{}, 5));
+    suite.run("fixed window weights and monotonic timestamps", [] {
+        FixedWindow window(5, 1000);
+        CHECK(window.allow(1, 100, 3));
+        CHECK(!window.allow(1, 200, 3));
+        CHECK(window.allow(1, 200, 2));
+        CHECK(!window.allow(1, 199));
+        CHECK(window.allow(1, 1100, 5));
     });
-    suite.run("clients are isolated", [] {
-        TokenBucketLimiter limiter(1, 1.0);
-        CHECK(limiter.allow("a", TimePoint{}));
-        CHECK(limiter.allow("b", TimePoint{}));
-        CHECK(limiter.tracked_clients() == 2);
-    });
-    suite.run("clock rollback rejected without granting tokens", [] {
-        TokenBucketLimiter limiter(1, 1.0);
-        CHECK(limiter.allow("a", TimePoint{} + std::chrono::seconds(10)));
-        EXPECT_THROW(std::invalid_argument, limiter.allow("a", TimePoint{} + std::chrono::seconds(9)));
-        CHECK(!limiter.allow("a", TimePoint{} + std::chrono::seconds(10)));
-    });
-    suite.run("configuration and request validation", [] {
-        EXPECT_THROW(std::invalid_argument, TokenBucketLimiter(0, 1.0));
-        EXPECT_THROW(std::invalid_argument, TokenBucketLimiter(1, std::numeric_limits<double>::infinity()));
-        TokenBucketLimiter limiter(1, 1.0);
-        EXPECT_THROW(std::invalid_argument, limiter.allow("", TimePoint{}));
-        EXPECT_THROW(std::invalid_argument, limiter.allow("a", TimePoint{}, 0));
-    });
-    suite.run("concurrent admission preserves burst bound", [] {
-        TokenBucketLimiter limiter(3, 1.0);
-        std::atomic<int> accepted{0};
+    suite.run("atomic refill plus consume", [] {
+        TokenBucket bucket(5, 1);
+        std::atomic<int> admitted(0);
         std::vector<std::thread> threads;
-        for (int i = 0; i < 12; ++i) {
-            threads.emplace_back([&] { if (limiter.allow("a", TimePoint{})) { ++accepted; } });
-        }
-        for (auto& thread : threads) { thread.join(); }
-        CHECK(accepted == 3);
+        for (int i = 0; i < 20; ++i)
+            threads.emplace_back([&] { if (bucket.allow(1, 0)) ++admitted; });
+        for (auto& thread : threads) thread.join();
+        CHECK(admitted.load() == 5);
     });
     return suite.finish();
 }

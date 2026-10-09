@@ -1,13 +1,8 @@
-# Movie Ticket Booking: Test Plan
+# Movie Ticket Booking: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Numeric IDs; pricing snapshot; booking/cancellation capacity.
+- [ ] No partial seat allocation on a rejected multi-seat request.
+- [ ] Duplicate/out-of-range seats; unknown shows; pricing-policy substitution.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] hold/confirm/retry
-- [ ] all-or-nothing overlap
-- [ ] exact-deadline expiry/reuse
-- [ ] old hold cannot free new hold
-- [ ] booking permanence
-- [ ] idempotent cancellation
-- [ ] independent shows
-- [ ] invalid seats/shows/time
-- [ ] concurrent last-seat hold
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

@@ -1,16 +1,21 @@
 # Contributing
 
-Contributions, alternative designs, and explanations of tradeoffs are welcome.
+Alternative designs and concise explanations of tradeoffs are welcome.
 
-## Repository layout
+## Layout
 
-Each example pairs a question in `questions/` with a reference implementation in `solutions/`. The question includes a prompt, TODO starter, and test plan; the solution includes code, a design explanation, and behavioral tests. Quiz questions and their answers live in separate files under `quizzes/`.
+Each numbered example pairs a question with a TODO `starter.hpp` and test checklist, plus a reference `solution.hpp`, `tests.cpp` and design explanation. Quiz questions and answers are separate.
 
-The existing build targets select the TODO starter when `LLD_PRACTICE` is set and the reference implementation otherwise. Root CMake and `scripts/test.sh` list the available examples.
+The examples focus on a 45–60-minute core workflow and an identifiable pattern. Advanced features can be described as follow-ups.
 
-## Running the tests
+## Test commands
 
-The current build scripts use C++11. To run the reference tests:
+```bash
+bash scripts/test.sh
+bash scripts/test.sh 01-parking-lot practice
+```
+
+The current scripts use C++11. CMake is also available:
 
 ```bash
 cmake -S . -B build
@@ -18,6 +23,4 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-The direct-build alternative is `bash scripts/test.sh`. For a practice attempt, use `bash scripts/test.sh <directory-name> practice`; the unfinished starters intentionally fail with TODO errors.
-
-A contribution description can explain the design choices, example behavior, and validation performed.
+Practice targets compile the question starter instead of including the answer. A contribution description can explain the core contract, responsibilities, ownership, pattern roles and validation performed.

@@ -1,14 +1,8 @@
-# Inventory Management: Test Plan
+# Inventory Management: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] No partial reservation when one SKU lacks stock.
+- [ ] Commit/release accounting; retry idempotency; changed-payload rejection.
+- [ ] Low-stock Observer delivery and unsubscribe; basic catalog input checks.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] receive and available count
-- [ ] all-or-nothing reservation
-- [ ] matching reserve retry
-- [ ] idempotent commit
-- [ ] idempotent release
-- [ ] invalid post-terminal transition
-- [ ] same ID/different payload
-- [ ] unknown SKU/order
-- [ ] quantity and overflow checks
-- [ ] concurrent last-item reservation
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

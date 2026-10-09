@@ -1,108 +1,91 @@
-# C++ Low-Level Design Interview Prep
+# C++ OOP Interview Practice
 
-A public, code-first collection for practicing **object-oriented low-level design (LLD)** interviews: responsibilities, encapsulation, interfaces, ownership, polymorphism, and design patterns. The examples and build scripts use **C++11** and the standard library.
+Nine small low-level-design examples for a **45–60-minute interview**. Each core shows a working object model, clear responsibilities and a relevant design pattern. The current examples and build scripts use C++11.
 
-Each of the nine examples has a question with interviewee TODOs, an explained reference implementation, deterministic behavioral tests, and related quiz questions. These are focused interview exercises, not production-ready services.
+The reference solutions are single headers of roughly 60–120 lines, including declarations and includes. Numeric identifiers use int or long long; strings represent actual text such as plates, filenames and SKU names.
 
 ## Questions and solutions
 
-| Question / TODO starter | Solution | OOP focus | Pattern focus |
-| --- | --- | --- | --- |
-| [Parking Lot](questions/01-parking-lot/README.md) | [Reference design](solutions/01-parking-lot/design.md) | Policy abstraction, ownership, allocation and checkout invariants | Strategy; Decorator (exercise) |
-| [Connect Four](questions/02-connect-four/README.md) | [Reference design](solutions/02-connect-four/design.md) | Encapsulated board, turn and lifecycle rules | State, Strategy, Command (exercises) |
-| [Amazon Locker](questions/03-amazon-locker/README.md) | [Reference design](solutions/03-amazon-locker/design.md) | Composed slot/session values and injected behavior | Strategy via callable; Adapter, Observer (exercises) |
-| [Elevator](questions/04-elevator/README.md) | [Reference design](solutions/04-elevator/design.md) | Car/bank responsibilities and dispatch polymorphism | Strategy; State (exercise) |
-| [File System](questions/05-file-system/README.md) | [Reference design](solutions/05-file-system/design.md) | Node hierarchy, recursive ownership and public API | Composite-style hierarchy, Facade; Visitor (exercise) |
-| [Movie Ticket Booking](questions/06-movie-ticket-booking/README.md) | [Reference design](solutions/06-movie-ticket-booking/design.md) | Seat ownership, hold lifecycle and service coordination | State, Strategy, Adapter (exercises) |
-| [Logging Service](questions/07-logging-service/README.md) | [Reference design](solutions/07-logging-service/design.md) | Sink interfaces, polymorphic delivery and shared lifetimes | Adapter, Observer-style fanout; Decorator (exercise) |
-| [Rate Limiter](questions/08-rate-limiter/README.md) | [Reference design](solutions/08-rate-limiter/design.md) | Encapsulated per-client state and atomic admission | Strategy, Decorator (exercises) |
-| [Inventory Management](questions/09-inventory-management/README.md) | [Reference design](solutions/09-inventory-management/design.md) | Stock values, reservation lifecycle and invariants | State, Strategy, Observer (exercises) |
+| TODO question | Reference solution | Main pattern |
+| --- | --- | --- |
+| [Parking Lot](questions/01-parking-lot/README.md) | [Code](solutions/01-parking-lot/solution.hpp) / [design](solutions/01-parking-lot/design.md) | Strategy |
+| [Connect Four](questions/02-connect-four/README.md) | [Code](solutions/02-connect-four/solution.hpp) / [design](solutions/02-connect-four/design.md) | Strategy |
+| [Amazon Locker](questions/03-amazon-locker/README.md) | [Code](solutions/03-amazon-locker/solution.hpp) / [design](solutions/03-amazon-locker/design.md) | Strategy |
+| [Elevator](questions/04-elevator/README.md) | [Code](solutions/04-elevator/solution.hpp) / [design](solutions/04-elevator/design.md) | Strategy |
+| [File System](questions/05-file-system/README.md) | [Code](solutions/05-file-system/solution.hpp) / [design](solutions/05-file-system/design.md) | Composite |
+| [Movie Ticket Booking](questions/06-movie-ticket-booking/README.md) | [Code](solutions/06-movie-ticket-booking/solution.hpp) / [design](solutions/06-movie-ticket-booking/design.md) | Strategy |
+| [Logging Service](questions/07-logging-service/README.md) | [Code](solutions/07-logging-service/solution.hpp) / [design](solutions/07-logging-service/design.md) | Observer + Adapter |
+| [Rate Limiter](questions/08-rate-limiter/README.md) | [Code](solutions/08-rate-limiter/solution.hpp) / [design](solutions/08-rate-limiter/design.md) | Strategy |
+| [Inventory Management](questions/09-inventory-management/README.md) | [Code](solutions/09-inventory-management/solution.hpp) / [design](solutions/09-inventory-management/design.md) | Observer |
 
-## OOP and design patterns
+## One interview-sized attempt
 
-The [design-pattern guide](docs/design-patterns.md) maps patterns to actual classes in all nine examples and includes the complete 23-pattern GoF catalog. Each reference design explains its OOP responsibilities and pattern choices; each question includes discussion TODOs for exploring alternatives.
+| Time | Focus |
+| --- | --- |
+| 0–5 min | Clarify the small workflow and assumptions. |
+| 5–15 min | Name responsibilities, ownership and pattern participants. |
+| 15–40 min | Implement the core workflow in straightforward code. |
+| 40–50 min | Test normal, boundary and failure cases. |
+| 50–60 min | Discuss one change and its tradeoffs. |
 
-Patterns marked **exercise** are follow-ups rather than implemented features. The guide also distinguishes enum-based state machines from the State pattern and algorithms such as token bucket and LOOK from design patterns.
+The base prompts define the small contract. Follow-ups such as persistence, payment, expiration, async delivery and distributed coordination are discussion items rather than extra plumbing in the core. Most examples are single-threaded; the Rate Limiter keeps one mutex per policy because atomic admission is central to that problem.
 
-## Practice without seeing the answer
+These interview-sized editions replace the earlier broader APIs. The current prompts, starters and tests are paired with the current solutions; previous editions remain in Git history.
 
-1. Pick a directory under `questions/`. Clarify the scope and state your invariants aloud.
-2. Complete its `starter.hpp` TODOs. You may redesign the internals while keeping the public test contract.
-3. Spend 45–60 minutes on the base design, then run the practice target.
-4. Compare with `solutions/`, explain tradeoffs, and attempt a follow-up change.
-5. Write a retrospective using [the template](templates/retrospective.md).
-
-The starter headers compile, but intentionally throw TODO errors. **Reference tests passing does not mean your attempt passes**: practice targets explicitly compile the question header and never link the solution.
-
-## Build and test all reference solutions
-
-The CMake build uses C++11 and CMake 3.20+. A direct compiler script is also available below.
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-Enable AddressSanitizer and UndefinedBehaviorSanitizer on GCC/Clang:
-
-```bash
-cmake -S . -B build -DLLD_ENABLE_SANITIZERS=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-Without CMake, use the GCC/Clang direct-build script (UBSan enabled by default):
+## Run a reference solution
 
 ```bash
 bash scripts/test.sh
-bash scripts/test.sh 02-connect-four
+bash scripts/test.sh 01-parking-lot
 ```
 
-## Run one interviewee attempt
-
-Example: Connect Four. Substitute any catalog directory name.
+Or with CMake:
 
 ```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=02-connect-four
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
+cmake -S . -B build
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
 ```
 
-Or:
+The direct compiler script enables UBSan by default. CMake offers `-DLLD_ENABLE_SANITIZERS=ON`. The CI exercises GCC, Clang and Apple Clang.
+
+## Practice without opening the answer
+
+Complete a question's `starter.hpp`, then run its matching tests:
 
 ```bash
-bash scripts/test.sh 02-connect-four practice
+bash scripts/test.sh 01-parking-lot practice
 ```
 
-Use `CXX=clang++` to select Clang in the shell script. For compiler environments without UBSan, set `LLD_SANITIZERS=none`. Tests avoid wall-clock sleeps and include concurrent capacity/record-count cases where appropriate; sanitizer runs alone do not prove race freedom.
+Or configure CMake with `-DLLD_PRACTICE_EXAMPLE=01-parking-lot`, build `practice_tests`, and run that test target. Substitute another example directory for other problems.
+
+The starters intentionally throw TODO errors. Practice targets compile the starter instead of the solution; passing reference tests does not validate an unfinished attempt.
+
+## OOP and patterns
+
+The [pattern guide](docs/design-patterns.md) maps the actual interfaces and collaborators and includes all 23 GoF patterns as a reference catalog. Patterns in the main table are implemented in the core; additional patterns in follow-up discussions are extensions.
+
+For each design, explain which behavior varies, which object protects an invariant, and who owns or borrows each collaborator.
 
 ## Quizzes
 
-- [C++ LLD foundations](quizzes/questions.md) → [answers](quizzes/solutions.md)
-- [Nine-example scenario quiz](quizzes/examples-questions.md) → [answers](quizzes/examples-solutions.md)
-- [OOP and design-pattern quiz](quizzes/design-patterns-questions.md) → [answers](quizzes/design-patterns-solutions.md)
+- [OOP foundations](quizzes/questions.md) → [answers](quizzes/solutions.md)
+- [Example scenarios](quizzes/examples-questions.md) → [answers](quizzes/examples-solutions.md)
+- [Design patterns](quizzes/design-patterns-questions.md) → [answers](quizzes/design-patterns-solutions.md)
 
-Try answering before opening the explanations, then discuss the tradeoffs behind each choice.
+## Study plan
 
-## Six-week study plan
-
-| Week | Practice | Focus |
+| Week | Examples | Focus |
 | --- | --- | --- |
-| 1 | Connect Four, Parking Lot | Ownership, invariants, value semantics |
-| 2 | Amazon Locker, Elevator | Lifecycle modeling and allocation/scheduling policies |
-| 3 | File System, Logging Service | Hierarchies, interfaces, lock/lifetime boundaries |
-| 4 | Movie Ticket Booking, Inventory Management | Atomic multi-entity updates and idempotency |
-| 5 | Rate Limiter; revisit concurrency tests | Monotonic time, contention, failure cases |
-| 6 | Timed mocks and follow-ups | Communication, changing requirements, tradeoffs |
+| 1 | Parking Lot, Connect Four | Encapsulation, numeric IDs and Strategy |
+| 2 | Amazon Locker, Elevator | Allocation and dispatch responsibilities |
+| 3 | File System, Logging Service | Composite, Observer, Adapter and lifetimes |
+| 4 | Movie Ticket Booking, Inventory | Whole-request validation and lifecycle rules |
+| 5 | Rate Limiter; revisit a previous example | Algorithm substitution and atomic admission |
+| 6 | Timed mocks | Clear explanation and one follow-up change |
 
-## Repository sections
+## Navigation
 
-- `questions/`: prompts, contracts, TODO-based runnable starter headers, and test plans
-- `solutions/`: reference code, design explanations, and behavioral tests
-- `quizzes/`: knowledge and scenario questions with separate answer keys
-- `common/`: test harness and a small optional-value helper
-- `docs/`: [OOP and design patterns](docs/design-patterns.md), [interview playbook](docs/interview-playbook.md), and [review rubric](docs/review-checklist.md)
-- `templates/`: reusable requirements and retrospective notes
+[Questions](questions/README.md) · [Solutions](solutions/README.md) · [Quizzes](quizzes/README.md) · [Interview playbook](docs/interview-playbook.md) · [Review checklist](docs/review-checklist.md) · [Contributing](CONTRIBUTING.md)
 
-Contributions and alternative designs are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Public reuse is covered by the [MIT license](LICENSE).
+The MIT license covers public reuse.

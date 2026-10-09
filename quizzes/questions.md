@@ -1,52 +1,46 @@
-# C++ LLD Foundations Quiz
+# OOP Interview Foundations Quiz
 
-Try answering each question before opening the explanations.
+Answer before opening the explanations.
 
-## Multiple choice
+1. ParkingLot stores const PricingPolicy&. What lifetime relationship does this express?
 
-1. A `ParkingLot` exclusively owns a replaceable pricing policy. Which representation best communicates that ownership?
+   A. The lot owns and deletes the policy  
+   B. The caller keeps the borrowed policy alive while the lot uses it  
+   C. The policy is copied into every ticket  
+   D. The policy must be global
 
-   A. Raw pointer  
-   B. `std::unique_ptr<PricingPolicy>`  
-   C. `std::shared_ptr<PricingPolicy>`  
-   D. Global variable
+2. Why keep a numeric spot ID in a ticket rather than a pointer to a vector element?
 
-2. Which design best avoids dangling references when tickets outlive internal container reallocations?
+   A. IDs provide object identity independent of container storage  
+   B. Integers automatically synchronize threads  
+   C. IDs replace all validation  
+   D. Pointers can never identify objects
 
-   A. Store a pointer to a `ParkingSpot` in every ticket  
-   B. Store the spot's stable ID in the ticket  
-   C. Reserve a large vector and assume it never grows  
-   D. Make every spot global
-
-3. What should a mutex protect?
+3. If concurrency is added, what should a lock protect?
 
    A. A class name  
-   B. An individual function  
-   C. A stated shared-state invariant  
-   D. Every `const` operation
+   B. A stated invariant across related state  
+   C. Only one map access at a time  
+   D. Every function regardless of shared state
 
-4. When is Strategy justified in an interview design?
+4. When is Strategy useful?
 
-   A. Whenever two classes exist  
-   B. When an expected policy must vary independently of the core workflow  
-   C. Only when the interviewer names the pattern  
-   D. To avoid writing tests
+   A. Whenever there are two classes  
+   B. When a behavior can vary independently of its coordinating workflow  
+   C. Only for numeric algorithms  
+   D. To avoid implementing a workflow
 
-5. Why should a polymorphic base such as `PricingPolicy` have a virtual destructor?
+5. Why does Node have a virtual destructor?
 
-   A. It makes construction faster  
-   B. It permits safe destruction through a base pointer  
-   C. It prevents copying automatically  
-   D. It makes all methods virtual
+   A. To sort children  
+   B. To safely destroy File/Directory through unique_ptr<Node>  
+   C. To make every node globally accessible  
+   D. To forbid all copying
 
-## Short answer
+6. State three parking-lot invariants.
+7. Explain why ParkingSpot values work well inside a vector owned by the lot.
+8. Which state belongs in the same park/checkout critical section if threads are added?
+9. How can you test the 60/61-minute fee boundary without sleeping?
+10. How can flat pricing replace hourly pricing, and which class remains unchanged?
 
-6. State three invariants for a parking-lot design.
-
-7. Explain why value semantics may be preferable to dynamic allocation for `ParkingSpot`.
-
-8. Name the shared state involved in an atomic checkout operation.
-
-9. How would you test fee calculation without depending on wall-clock time?
-
-10. An interviewer adds weekend pricing. Which code should change, and which code should remain unchanged?
+[Answer key](solutions.md)

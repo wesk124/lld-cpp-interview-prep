@@ -1,14 +1,8 @@
-# Elevator: Test Plan
+# Elevator: Core Test Checklist
 
-The reference test suite exercises these behaviors. Add tests as you implement the TODOs; keep wall-clock sleeps out of tests.
+- [ ] Door closing consumes a step before movement.
+- [ ] LOOK continues, then reverses; repeated requests coalesce.
+- [ ] Nearest and least-busy policies select different cars; invalid floors reject.
+- [ ] Name the pattern participants and verify polymorphic behavior where relevant.
 
-- [ ] idle car
-- [ ] one floor per tick
-- [ ] doors prevent movement
-- [ ] LOOK upward then reverse
-- [ ] current-floor request
-- [ ] coalesced requests
-- [ ] nearest bank dispatch
-- [ ] tie breaking
-- [ ] invalid floors/hall direction
-- [ ] downward bound
+The checklist matches the small base contract. Follow-up features have separate design discussions rather than extra base-test requirements.

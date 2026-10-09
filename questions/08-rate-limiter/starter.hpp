@@ -1,24 +1,46 @@
 #pragma once
-#include <chrono>
+
+#include <map>
+#include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
+
 namespace lld {
 namespace rate_limiter {
-using Clock = std::chrono::steady_clock;
-using TimePoint = Clock::time_point;
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
-class TokenBucketLimiter {
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
+class RateLimiter {
 public:
-    TokenBucketLimiter(int /*capacity*/, double /*tokens_per_second*/) {
-        todo("validate finite positive refill rate and burst capacity");
-    }
-    bool allow(const std::string& /*client*/, TimePoint /*now*/, int /*cost*/ = 1) {
-        todo("refill and consume tokens atomically per client, without borrowing");
-    }
-    std::size_t tracked_clients() const { todo("return a synchronized client count"); }
-private:
-    // TODO: Own per-client tokens and last-refill timestamps.
-    // TODO: Reject backward client time and cap accumulated tokens at capacity.
+    virtual ~RateLimiter() {}
+    virtual bool allow(int client_id, long long now_ms, int cost = 1) = 0;
 };
-}  // namespace rate_limiter
-}  // namespace lld
+class TokenBucket : public RateLimiter {
+public:
+    TokenBucket(int /*capacity*/, double /*tokens_per_second*/) { todo("store capacity and rate"); }
+    bool allow(int /*client_id*/, long long /*now_ms*/, int /*cost*/ = 1) override {
+        todo("lock, refill continuously, cap tokens and consume if available");
+    }
+};
+class FixedWindow : public RateLimiter {
+public:
+    FixedWindow(int /*limit*/, long long /*window_ms*/) { todo("store window configuration"); }
+    bool allow(int /*client_id*/, long long /*now_ms*/, int /*cost*/ = 1) override {
+        todo("lock, reset elapsed window and count allowed request cost");
+    }
+};
+class RequestGate {
+public:
+    explicit RequestGate(RateLimiter& /*limiter*/) { todo("borrow a Strategy"); }
+    bool admit(int /*client_id*/, long long /*now_ms*/, int /*cost*/ = 1) {
+        todo("delegate admission through the interface");
+    }
+};
+
+} // namespace rate_limiter
+} // namespace lld

@@ -1,19 +1,19 @@
 # Interview Questions
 
-Every starter has an explicit public contract and marked TODOs. Implement your own state and behavior before inspecting `solutions/`.
+Each example has a small 45–60-minute base contract, a TODO starter and a test checklist. Implement the core before inspecting the reference answer.
 
-Each prompt also includes OOP and pattern discussion TODOs. Use the [pattern guide](../docs/design-patterns.md) for a catalog of ideas and the [pattern quiz](../quizzes/design-patterns-questions.md) to practice explaining their intent. Pattern follow-ups are optional extensions to the base test contract.
-
-| Question | Main concepts |
+| Question | Main pattern |
 | --- | --- |
-| [Parking Lot](01-parking-lot/README.md) | Ownership, Strategy, compatible allocation, atomic checkout |
-| [Connect Four](02-connect-four/README.md) | Board modeling, gravity, directional win detection, terminal states |
-| [Amazon Locker](03-amazon-locker/README.md) | Size-based allocation, injected codes, expiration, physical occupancy |
-| [Elevator](04-elevator/README.md) | Door interlocks, LOOK scheduling, bank dispatch Strategy |
-| [File System](05-file-system/README.md) | Composite hierarchy, unique ownership, path validation, traversal |
-| [Movie Ticket Booking](06-movie-ticket-booking/README.md) | Atomic seat holds, state machine, expiry, idempotency |
-| [Logging Service](07-logging-service/README.md) | Sink interfaces, fanout, failure isolation, lock/lifetime boundaries |
-| [Rate Limiter](08-rate-limiter/README.md) | Token-bucket invariants, weighted requests, monotonic time, contention |
-| [Inventory Management](09-inventory-management/README.md) | Stock invariants, multi-SKU transactions, idempotent lifecycle |
+| [Parking Lot](01-parking-lot/README.md) | Strategy |
+| [Connect Four](02-connect-four/README.md) | Strategy |
+| [Amazon Locker](03-amazon-locker/README.md) | Strategy |
+| [Elevator](04-elevator/README.md) | Strategy |
+| [File System](05-file-system/README.md) | Composite |
+| [Movie Ticket Booking](06-movie-ticket-booking/README.md) | Strategy |
+| [Logging Service](07-logging-service/README.md) | Observer + Adapter |
+| [Rate Limiter](08-rate-limiter/README.md) | Strategy |
+| [Inventory Management](09-inventory-management/README.md) | Observer |
 
-Run any attempt with `bash scripts/test.sh <directory-name> practice` from the repository root, or use the CMake instructions in its prompt. The incomplete starter is expected to fail; it never includes reference code.
+Run one attempt from the repository root with `bash scripts/test.sh <directory-name> practice`. Follow-up discussions are separate from the core contract.
+
+[Interview pacing](../docs/interview-playbook.md) · [Pattern guide](../docs/design-patterns.md)

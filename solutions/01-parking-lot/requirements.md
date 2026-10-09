@@ -1,5 +1,5 @@
 # Parking Lot Requirements
 
-This solution follows the exercise contract from the matching [interview question](../../questions/01-parking-lot/README.md).
+The current [question](../../questions/01-parking-lot/README.md) defines the interview-sized core: numeric IDs, compatibility, park/checkout and pricing Strategy.
 
-The implementation chooses the smallest compatible available spot, treats tickets as single-use stable records, rounds billing up to whole hours with a one-hour minimum, and protects all in-memory state with one mutex.
+[Solution](solution.hpp) · [Design](design.md) · [Tests](tests.cpp)

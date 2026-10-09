@@ -1,59 +1,39 @@
 # Connect Four
 
-Design the core engine for a two-player Connect Four game, separate from any UI.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Default to a 6×7 board and four consecutive pieces; allow configurable positive dimensions and a valid winning length.
-2. Red starts. A drop lands in the lowest empty row of the selected column.
-3. Detect horizontal, vertical, and both diagonal wins from the latest move.
-4. Declare a draw when the board fills without a winner.
-5. Reject out-of-range columns, full columns, and moves after the game ends without advancing the turn.
+1. Use R/Y pieces on a board initially filled with dots; a drop lands at the lowest free row.
+2. Reject invalid columns, full columns and moves after a win/draw with false, without changing the turn.
+3. Check horizontal, vertical and diagonal lines through the newest piece.
+4. Delegate the winning condition through WinRule; configure ConnectKRule for connect-four or connect-three.
 
 ## Scope and assumptions
 
-Single-threaded rules engine only. No UI, AI, network play, or undo. Rows and columns are zero-based; row 0 is the top. next_player is meaningful only while playing.
+Single-threaded rules engine with no UI, AI or network transport. Row 0 is the top. A small configurable board supports deterministic tests; next_player is meaningful while playing.
 
 ## Interviewee TODOs
 
-- [ ] Choose board storage and strongly typed cells/game status.
-- [ ] Validate constructor input and checked cell access.
-- [ ] Implement gravity and alternating turns.
-- [ ] Count matching neighbors in both directions along four axes.
-- [ ] Separate terminal status from the next playable turn.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Explain which invariants belong to `Game` and why moves are returned as values.
-- [ ] Compare the enum-based lifecycle with State objects, and discuss when delegation would help.
-- [ ] Explore a move-selection Strategy and a drop Command with undo; identify the prior state that undo needs.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Model board, turn and terminal status inside Game.
+- [ ] Implement gravity and directional matching around the last move.
+- [ ] Invoke the WinRule Strategy instead of putting its algorithm inside Game.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=02-connect-four
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 02-connect-four practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=02-connect-four` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Add move history and undo.
-2. Generalize to arbitrary connect-K rules.
-3. Add an AI player behind a move-selection interface.
+- Add a move-selection Strategy for human/AI decisions.
+- Add Command-based undo or a Memento; discuss when a richer lifecycle would benefit from State objects.
 
-After your attempt: [design explanation](../../solutions/02-connect-four/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/02-connect-four/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

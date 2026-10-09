@@ -1,59 +1,39 @@
 # Movie Ticket Booking
 
-Design seat reservations for movie shows with expiring holds and confirmation.
+A 45–60-minute OOP exercise. Main pattern: **Strategy**.
 
-## Interview contract
+## Core interview contract
 
-1. Create uniquely identified shows with zero-based seats.
-2. Hold an entire requested seat set atomically; invalid/duplicate seat numbers throw and conflicts return no hold.
-3. A hold has a customer, stable ID, and deadline. It expires when now >= deadline.
-4. Confirm a live hold into a booking; repeated confirmation returns the same booking.
-5. Cancel an unconfirmed hold idempotently. Expired/cancelled holds never free seats now owned by newer holds; bookings do not expire.
+1. Add shows with seats indexed from 0.
+2. Validate every requested seat before marking any of them booked; reject overlaps, duplicates and invalid seats with -1.
+3. Delegate price calculation to SeatPricing and return a numeric booking ID.
+4. Cancel a booking to free exactly its seats; return false for unknown/used booking IDs.
 
 ## Scope and assumptions
 
-Single-process in-memory service; no payments, authentication, refunds, seat pricing, theaters, or durable storage. TTL is 1 second through 24 hours. Inject steady_clock time points in nondecreasing processing order; expiry is processed on timed operations. Hold confirmation models an already-approved checkout, not a payment transaction.
+Single-threaded in-memory booking/cancellation. Prices are integer cents with ordinary interview-scale values. This core has no timed holds, payment integration or concurrent callers; those change the workflow and are explicit follow-ups.
 
 ## Interviewee TODOs
 
-- [ ] Define show, seat ownership, hold, and booking records.
-- [ ] Validate all requested seats before changing any of them.
-- [ ] Serialize conflict checking and seat assignment.
-- [ ] Expire only live holds and preserve terminal states for retries.
-- [ ] Document the payment boundary and add contention tests.
-- [ ] Explain object ownership, invariants, and error handling before writing code.
-- [ ] Run the practice tests and discuss at least one alternative design.
-
-## OOP and pattern discussion
-
-- [ ] Explain how the service coordinates show, seat, and hold responsibilities and where ownership invariants are enforced.
-- [ ] Compare the enum-based hold lifecycle with State objects as payment/refund behavior grows.
-- [ ] Explore pricing Strategy and payment Adapter interfaces, keeping atomic seat updates and retry semantics explicit.
-
-[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+- [ ] Own seat availability per show and bookings keyed by integer IDs.
+- [ ] Validate the whole request before changing availability.
+- [ ] Use a SeatPricing Strategy; implement cancellation and booking snapshots.
+- [ ] Explain ownership and the pattern's participating objects before coding.
+- [ ] Test the main workflow, one boundary and one failure; discuss one follow-up.
 
 ## Run your attempt
 
-Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.
-
-```bash
-cmake -S . -B build-practice -DLLD_PRACTICE_EXAMPLE=06-movie-ticket-booking
-cmake --build build-practice --target practice_tests
-ctest --test-dir build-practice -R '^practice_tests$' --output-on-failure
-```
-
-Without CMake:
+Complete [starter.hpp](starter.hpp). It supplies interfaces and TODOs, not a solution. Run from the repository root:
 
 ```bash
 bash scripts/test.sh 06-movie-ticket-booking practice
 ```
 
-Run commands from the repository root. The tests are the same behavioral contract as the reference solution; incomplete attempts are expected to fail them.
+Or use CMake with `-DLLD_PRACTICE_EXAMPLE=06-movie-ticket-booking` and build/run `practice_tests`. The unfinished starter compiles but fails with TODO messages; it never includes the answer.
 
-## Follow-ups
+## Follow-ups for discussion
 
-1. Add payment authorization and compensating release.
-2. Add per-show locks or transactional durable storage.
-3. Add seat categories, pricing policies, and booking refunds.
+- Add one lock spanning availability checks and updates for concurrent bookings.
+- Add timed holds/State-based lifecycle behavior and an Adapter for payment, with compensation.
 
-After your attempt: [design explanation](../../solutions/06-movie-ticket-booking/design.md) · [test checklist](test_plan.md) · [example quiz](../../quizzes/examples-questions.md).
+[After your attempt: design](../../solutions/06-movie-ticket-booking/design.md) · [Test checklist](test_plan.md) · [Pattern guide](../../docs/design-patterns.md)

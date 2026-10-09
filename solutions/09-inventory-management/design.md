@@ -1,37 +1,43 @@
-# Inventory Management: Reference Design
+# Inventory Management: Interview Design
 
-[Question](../../questions/09-inventory-management/README.md) · [Tests](tests.cpp)
+[Question](../../questions/09-inventory-management/README.md) · [Core code](solution.hpp) · [Tests](tests.cpp)
 
-## Responsibilities, ownership, and invariants
+## OOP responsibilities and pattern
 
-Inventory owns SKU Stock values and an order Reservation ledger. A reservation retains its original quantities and terminal state for idempotent retries.
+Main pattern: **Observer**.
 
-One mutex covers all SKUs in a reservation. Validate the entire order and all available quantities before creating the ledger record or changing reserved counts.
+| Object | Responsibility |
+| --- | --- |
+| `Stock` | On-hand/reserved counts and available quantity. |
+| `Inventory` | Catalog, numeric order IDs and whole-order reservations. |
+| `ReservationState` | Simple held/committed/released lifecycle. |
+| `StockObserver` | Subscriber receiving low-stock events. |
 
-The invariant is 0 <= reserved <= on_hand. Commit subtracts from both counts; release subtracts only reserved, so availability and physical stock remain distinct.
+reserve checks every SKU, records the order, updates all reservations, then notifies low-stock observers. commit consumes once; release returns held quantities to availability.
 
-Matching held/committed reserve retries acknowledge the original operation. Different payloads for the same order ID are rejected; a released order ID cannot silently start a new reservation.
+## Ownership and scope
 
-For K order lines and N SKUs, reserve/commit/release are O(K log N + log O), with O orders in the ledger. Space grows with catalog size and retained order lines.
+Inventory owns stock and reservation values and borrows observers. stock(sku) returns a value copy. Subscriptions do not own or destroy clients.
 
-This is not an event-sourced or durable inventory system. Production adds durable transaction/idempotency boundaries, retention, warehouse ownership, audit events, and expiration if required.
+Single-threaded in-memory catalog with numeric order IDs and text SKU names. Notifications occur after the full mutation, use successful non-mutating callbacks, and may repeat while stock remains low. Subscribers outlive registration. Warehouses, expiration and durable storage are follow-ups.
 
+## Small usage example
 
-## OOP and design patterns
+Within the example's namespace:
 
-- **Current OOP design:** `Stock` is a value with an availability calculation. `Inventory` owns stock and reservation records and enforces invariants across an entire order. `ReservationState` describes an enum-based lifecycle rather than delegated GoF State behavior.
-- **Strategy (follow-up):** A warehouse-allocation policy could choose fulfillment sources independently of stock accounting, with a contract for availability and all-or-nothing allocation.
-- **Observer (follow-up):** Low-stock or reservation events could notify subscribers after the protected mutation commits. Callback failure and event ordering would need their own delivery rules.
-- **State (follow-up):** Reservation state objects could organize expanded expired/shipped/returned behavior. Atomic multi-SKU updates and idempotency remain the inventory workflow's responsibility.
+```cpp
+Inventory inventory(3);
+inventory.add_sku("SKU-A", 10);
+inventory.reserve(101, {{"SKU-A", 4}});
+inventory.commit(101);
+// inventory.stock("SKU-A").on_hand == 6
+```
+
+K-line orders use O(K log SKUs + log orders), plus Observer delivery. Completed order records remain for retry detection.
+
+## Follow-up discussion
+
+- Add warehouse-selection Strategy or an expanded reservation State design.
+- Add concurrency, durable idempotency, callback failure rules and event ordering to the model.
 
 [Pattern map and catalog](../../docs/design-patterns.md)
-
-## Scope
-
-One in-memory catalog, no warehouses, prices, shipment, payment, persistence, or reservation timeout. Unknown order commit/release returns false. Integer overflow throws. Completed order records remain available for retry deduplication.
-
-## Extend it yourself
-
-- Add multiple warehouses and transfer workflows.
-- Add reservation expiration and low-stock notifications.
-- Map operations to database transactions and durable idempotency records.

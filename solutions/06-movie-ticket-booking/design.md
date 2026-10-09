@@ -1,37 +1,43 @@
-# Movie Ticket Booking: Reference Design
+# Movie Ticket Booking: Interview Design
 
-[Question](../../questions/06-movie-ticket-booking/README.md) · [Tests](tests.cpp)
+[Question](../../questions/06-movie-ticket-booking/README.md) · [Core code](solution.hpp) · [Tests](tests.cpp)
 
-## Responsibilities, ownership, and invariants
+## OOP responsibilities and pattern
 
-BookingService owns shows and a lifecycle ledger of Hold records. Each seat stores 0 (free) or a stable HoldId; one mutex spans conflict check, ownership assignment, expiry, and confirmation.
+Main pattern: **Strategy**.
 
-The lifecycle is held → booked, cancelled, or expired. Terminal records are retained to make confirmation/cancellation retries deterministic.
+| Object | Responsibility |
+| --- | --- |
+| `BookingService` | Show seats, numeric booking IDs and book/cancel workflows. |
+| `Booking` | Customer/show IDs, selected seats and price snapshot. |
+| `SeatPricing` | Abstract booking-price operation. |
+| `PerSeatPricing / BookingFeePricing` | Alternative pricing rules. |
 
-An injected monotonic clock and exact >= deadline rule make expiration deterministic. Expiry only processes records still in held state, so stale holds cannot free newer reservations.
+book checks all seats, calculates the price through the policy, stores a booking and marks seats. cancel restores its seats and erases the booking.
 
-Optional hold and booking snapshots use the small [C++11 helper](../../common/optional.hpp), which owns its value independently of the ledger. Multi-seat hold checks every seat first, allocates the result and hold record, then publishes integer ownership IDs. Confirmation builds the returned Booking value before committing state.
+## Ownership and scope
 
-A timed operation scans H hold records and releases affected seats. Holding K seats adds O(K log K + log H), listing capacity O(S), space O(S + retained hold-seat history).
+The service owns show and booking values and borrows its pricing policy. booking(id) returns a copied value snapshot.
 
-Expired history grows without bound in this sample. Production needs retention/cleanup, per-show or database transaction locks, and explicit payment idempotency and compensation.
+Single-threaded in-memory booking/cancellation. Prices are integer cents with ordinary interview-scale values. This core has no timed holds, payment integration or concurrent callers; those change the workflow and are explicit follow-ups.
 
+## Small usage example
 
-## OOP and design patterns
+Within the example's namespace:
 
-- **Current OOP design:** `BookingService` coordinates show capacity, seat ownership, and hold records. `Hold` and `Booking` are value snapshots. `HoldStatus` encodes an explicit lifecycle; there are no GoF State objects in the reference.
-- **State (follow-up):** A hold context could delegate confirm/cancel behavior to lifecycle state objects as refund or payment-pending rules expand. Seat conflict checks and updates still need their atomic boundary.
-- **Strategy (follow-up):** A seat-pricing interface could support category, event, or membership pricing independently of ownership and expiry rules.
-- **Adapter (follow-up):** A payment adapter could translate a provider's API into domain checkout operations. Idempotency, failure compensation, and I/O placement remain explicit workflow decisions.
+```cpp
+BookingFeePricing pricing(1000, 200);
+BookingService service(pricing);
+service.add_show(10, 5);
+int id = service.book(10, 7, {0, 1});
+// service.booking(id).price_cents == 2200
+```
+
+For K requested seats, validation costs O(K log K) using a set, plus O(log shows + log bookings) lookups.
+
+## Follow-up discussion
+
+- Add one lock spanning availability checks and updates for concurrent bookings.
+- Add timed holds/State-based lifecycle behavior and an Adapter for payment, with compensation.
 
 [Pattern map and catalog](../../docs/design-patterns.md)
-
-## Scope
-
-Single-process in-memory service; no payments, authentication, refunds, seat pricing, theaters, or durable storage. TTL is 1 second through 24 hours. Inject steady_clock time points in nondecreasing processing order; expiry is processed on timed operations. Hold confirmation models an already-approved checkout, not a payment transaction.
-
-## Extend it yourself
-
-- Add payment authorization and compensating release.
-- Add per-show locks or transactional durable storage.
-- Add seat categories, pricing policies, and booking refunds.

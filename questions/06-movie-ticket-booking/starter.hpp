@@ -1,44 +1,47 @@
 #pragma once
-#include <chrono>
-#include <cstdint>
-#include "optional.hpp"
+
+#include <map>
+#include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
 namespace lld {
 namespace movie_ticket_booking {
-using Clock = std::chrono::steady_clock;
-using TimePoint = Clock::time_point;
-using HoldId = std::uint64_t;
-enum class HoldStatus { held, booked, cancelled, expired };
-struct Hold {
-    HoldId id; std::string show_id; std::string customer_id; std::vector<int> seats;
-    TimePoint expires_at; HoldStatus status;
+
+[[noreturn]] inline void todo(const char* task) {
+    throw std::logic_error(std::string("TODO: ") + task);
+}
+
+class SeatPricing {
+public:
+    virtual ~SeatPricing() {}
+    virtual int total(int seats) const = 0;
 };
-struct Booking { HoldId id; std::string show_id; std::string customer_id; std::vector<int> seats; };
-[[noreturn]] inline void todo(const char* task) { throw std::logic_error(std::string("TODO: ") + task); }
+class PerSeatPricing : public SeatPricing {
+public:
+    explicit PerSeatPricing(int /*cents_per_seat*/) { todo("store seat price"); }
+    int total(int /*seats*/) const override { todo("calculate per-seat total"); }
+};
+class BookingFeePricing : public SeatPricing {
+public:
+    BookingFeePricing(int /*cents_per_seat*/, int /*booking_fee*/) { todo("store pricing values"); }
+    int total(int /*seats*/) const override { todo("add booking fee to seat total"); }
+};
+struct Booking { int id; int show_id; int customer_id; std::vector<int> seats; int price_cents; };
 class BookingService {
 public:
-    void add_show(std::string /*id*/, std::string /*movie*/, int /*seat_count*/) {
-        todo("create a show with initially available zero-based seats");
+    explicit BookingService(const SeatPricing& /*pricing*/) { todo("borrow pricing Strategy"); }
+    bool add_show(int /*show_id*/, int /*seat_count*/) { todo("create seat availability"); }
+    int book(int /*show_id*/, int /*customer_id*/, const std::vector<int>& /*seats*/) {
+        todo("validate entire request, calculate price, create booking and mark seats");
     }
-    lld::Optional<Hold> hold(const std::string& /*show*/, const std::string& /*customer*/,
-                            const std::vector<int>& /*seats*/, TimePoint /*now*/,
-                            std::chrono::seconds /*ttl*/) {
-        todo("validate all seats before reserving any; reject conflicts atomically");
-    }
-    lld::Optional<Booking> confirm(HoldId /*id*/, TimePoint /*now*/) {
-        todo("expire stale holds, then confirm idempotently");
-    }
-    bool cancel(HoldId /*id*/, TimePoint /*now*/) {
-        todo("release a live hold without cancelling a completed booking");
-    }
-    std::size_t available_seats(const std::string& /*show*/, TimePoint /*now*/) {
-        todo("expire stale holds before reporting capacity");
-    }
-private:
-    // TODO: Own show seat state and the hold lifecycle ledger under one mutex.
-    // TODO: A stale hold must never free a seat now owned by another hold.
+    bool cancel(int /*booking_id*/) { todo("free booking seats and remove booking"); }
+    Booking booking(int /*id*/) const { todo("return booking snapshot"); }
+    int available_seats(int /*show_id*/) const { todo("count free seats"); }
 };
-}  // namespace movie_ticket_booking
-}  // namespace lld
+
+} // namespace movie_ticket_booking
+} // namespace lld
