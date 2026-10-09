@@ -17,6 +17,15 @@ A nondecreasing injected steady clock makes exact-deadline tests deterministic. 
 With S slots and A assignments, allocation is O(S + A + log A), pickup O(S + log A), collection O(A×S), space O(S+A). Replace scans/indexes when actual scale warrants it.
 
 
+## OOP and design patterns
+
+- **Strategy via a callable (implemented):** `Locker` is the context and its supplied `std::function<std::string()>` is the replaceable code-generation behavior. This is dependency injection without a dedicated strategy class hierarchy. Smallest-compatible-slot allocation remains fixed in `deposit`.
+- **OOP responsibilities:** `Slot` describes capacity, `Assignment` describes a package session, and `Locker` coordinates occupancy and code validity. Expiration and physical package removal have distinct meanings.
+- **Strategy / Adapter (follow-ups):** An allocation policy could choose slots; a door-controller adapter could translate a hardware API into domain operations. These isolate different sources of change.
+- **Observer / State (follow-ups):** Package events could notify clients; state objects could organize a richer lifecycle while preserving the fact that expired packages still occupy slots.
+
+[Pattern map and catalog](../../docs/design-patterns.md)
+
 ## Scope
 
 One in-memory bank; no actual Amazon API, hardware doors, authentication, notifications, or production security. TTL is 1 second through 24 hours. Inject steady_clock time points in nondecreasing processing order. The generator must be bounded and non-reentrant; predictable codes in tests are not production-safe.

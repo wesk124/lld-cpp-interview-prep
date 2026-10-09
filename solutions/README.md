@@ -2,6 +2,8 @@
 
 These are interview-sized designs, not canonical answers or production systems. Compare responsibilities, ownership, invariants, and tradeoffs—not merely class names.
 
+Every design includes an **OOP and design patterns** section identifying concrete collaborators and possible extensions. The [pattern map and GoF catalog](../docs/design-patterns.md) distinguish implemented patterns from follow-up exercises.
+
 | Example | Design | Code |
 | --- | --- | --- |
 | Parking Lot | [Explanation](01-parking-lot/design.md) | [Implementation](01-parking-lot/include/lld/parking_lot/parking_lot.hpp) |

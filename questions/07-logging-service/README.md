@@ -24,6 +24,14 @@ Synchronous in-process logging only. No background queue, rotation, network deli
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Explain the Sink abstraction, shared sink ownership, and borrowed stream lifetime; identify StreamSink's Adapter role.
+- [ ] Compare Observer-style fanout with Chain of Responsibility, including whether one sink handles a record or all receive it.
+- [ ] Explore a redacting Decorator or Composite sink group and define synchronization, wrapper ordering, and delivery semantics.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

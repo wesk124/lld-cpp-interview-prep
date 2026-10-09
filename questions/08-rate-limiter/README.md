@@ -24,6 +24,14 @@ Single-process token bucket, not a distributed limiter or strict fixed/sliding-w
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Explain which object owns client buckets and why refill and consumption form one protected operation.
+- [ ] Explore a Strategy interface for token-bucket and sliding-window algorithms; describe the guarantees each implementation exposes.
+- [ ] Discuss a Decorator that adds admission checks around a service and identify ownership of the service and limiter.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

@@ -17,6 +17,15 @@ For K order lines and N SKUs, reserve/commit/release are O(K log N + log O), wit
 This is not an event-sourced or durable inventory system. Production adds durable transaction/idempotency boundaries, retention, warehouse ownership, audit events, and expiration if required.
 
 
+## OOP and design patterns
+
+- **Current OOP design:** `Stock` is a value with an availability calculation. `Inventory` owns stock and reservation records and enforces invariants across an entire order. `ReservationState` describes an enum-based lifecycle rather than delegated GoF State behavior.
+- **Strategy (follow-up):** A warehouse-allocation policy could choose fulfillment sources independently of stock accounting, with a contract for availability and all-or-nothing allocation.
+- **Observer (follow-up):** Low-stock or reservation events could notify subscribers after the protected mutation commits. Callback failure and event ordering would need their own delivery rules.
+- **State (follow-up):** Reservation state objects could organize expanded expired/shipped/returned behavior. Atomic multi-SKU updates and idempotency remain the inventory workflow's responsibility.
+
+[Pattern map and catalog](../../docs/design-patterns.md)
+
 ## Scope
 
 One in-memory catalog, no warehouses, prices, shipment, payment, persistence, or reservation timeout. Unknown order commit/release returns false. Integer overflow throws. Completed order records remain available for retry deduplication.

@@ -24,6 +24,14 @@ In-memory text only. No host OS files are created/deleted by FileSystem. No link
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Identify the component, leaf, and composite roles and explain ownership of a directory's children.
+- [ ] Discuss the common node interface and how a path-based FileSystem API acts as a Facade.
+- [ ] Explore Visitor for reports or Command for undoable edits; compare the costs of adding operations and node types.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

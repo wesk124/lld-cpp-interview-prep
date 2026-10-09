@@ -24,6 +24,14 @@ Single-threaded rules engine only. No UI, AI, network play, or undo. Rows and co
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Explain which invariants belong to `Game` and why moves are returned as values.
+- [ ] Compare the enum-based lifecycle with State objects, and discuss when delegation would help.
+- [ ] Explore a move-selection Strategy and a drop Command with undo; identify the prior state that undo needs.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

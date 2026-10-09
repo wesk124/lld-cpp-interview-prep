@@ -24,6 +24,14 @@ No payments, persistence, reservations, or distributed coordination. Prices are 
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Identify the context, strategy interface, and concrete pricing policy; explain who owns the policy and spots.
+- [ ] Discuss how Strategy supports weekend pricing independently of allocation and checkout.
+- [ ] Explore a Decorator for surcharges or an Observer for capacity displays, including ordering and notification boundaries.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

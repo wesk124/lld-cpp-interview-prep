@@ -34,6 +34,8 @@ An abstraction is easier to justify when you can finish this sentence:
 
 > This abstraction isolates changes to ____ from ____.
 
+Use the [OOP and design-pattern guide](design-patterns.md) to connect a pattern to its participants: the context, interface, implementations, and owner. Explain which pattern is already present and which would support a follow-up requirement. For example, `DispatchPolicy` is Strategy; enum-based elevator transitions could become State objects if their behavior grows. Describe the change and tradeoff before adding the extra objects.
+
 ## 5. Implement a vertical slice
 
 Write enough code to demonstrate the main workflow end-to-end. Favor compilable interfaces and one correct path over a large collection of empty classes.

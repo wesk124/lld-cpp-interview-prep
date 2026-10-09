@@ -24,6 +24,14 @@ One in-memory bank; no actual Amazon API, hardware doors, authentication, notifi
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Separate slot capacity, package-session data, and locker coordination; explain the code generator's callable Strategy role.
+- [ ] Explore a slot-allocation Strategy and a hardware-door Adapter, identifying the different changes each isolates.
+- [ ] Discuss Observer notifications or State objects while keeping expiry distinct from physical package removal.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

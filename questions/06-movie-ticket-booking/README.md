@@ -24,6 +24,14 @@ Single-process in-memory service; no payments, authentication, refunds, seat pri
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Explain how the service coordinates show, seat, and hold responsibilities and where ownership invariants are enforced.
+- [ ] Compare the enum-based hold lifecycle with State objects as payment/refund behavior grows.
+- [ ] Explore pricing Strategy and payment Adapter interfaces, keeping atomic seat updates and retry semantics explicit.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

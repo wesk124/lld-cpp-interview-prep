@@ -17,6 +17,15 @@ Traversal is O(D log B), with depth D and maximum sibling count B. Listing costs
 The coarse lock and recursive destruction are sufficient for interview scale. Deep untrusted trees need bounded depth, and durability/atomic rename require separate design work.
 
 
+## OOP and design patterns
+
+- **Composite-style hierarchy (implemented):** `Node` is the component, `File` is a leaf, and `Directory` owns child components that can be files or directories. The common interface currently covers node kind and safe polymorphic destruction; file/directory operations mostly live in `FileSystem` rather than a uniform recursive `Node` API.
+- **Facade (implemented):** `FileSystem` exposes path-based operations while coordinating parsing, node navigation, type checks, and locking. Callers work with values rather than mutable node pointers.
+- **Visitor (follow-up):** Node visitors could add size reports or exports. This favors adding operations but makes new node kinds affect visitor interfaces and implementations.
+- **Command (follow-up):** Undoable edits could retain previous file contents or an owned removed subtree, with restoration and name-conflict rules.
+
+[Pattern map and catalog](../../docs/design-patterns.md)
+
 ## Scope
 
 In-memory text only. No host OS files are created/deleted by FileSystem. No links, permissions, append, rename, quotas, or persistence. list accepts directories only; file read/write paths must not end with a slash. Each public method is serialized; mkdir may partially complete on allocation failure.

@@ -24,6 +24,14 @@ One in-memory catalog, no warehouses, prices, shipment, payment, persistence, or
 - [ ] Explain object ownership, invariants, and error handling before writing code.
 - [ ] Run the practice tests and discuss at least one alternative design.
 
+## OOP and pattern discussion
+
+- [ ] Explain Stock value semantics, reservation ownership, and why the inventory coordinates invariants across an entire order.
+- [ ] Explore warehouse-allocation Strategy or richer reservation State objects, identifying the responsibilities that remain in inventory accounting.
+- [ ] Discuss Observer for low-stock events and callback behavior after releasing the inventory lock.
+
+[Pattern guide](../../docs/design-patterns.md). These discussion extensions are separate from the base test contract.
+
 ## Run your attempt
 
 Complete the marked methods in [starter.hpp](starter.hpp). The starting code compiles but deliberately throws `TODO` errors until implemented. It does not include or link the reference implementation.

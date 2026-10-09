@@ -17,6 +17,15 @@ HourlyPricingPolicy truncates elapsed time to whole hours, adds an hour for any 
 The strategy runs under the lot lock. Custom policies must be bounded, non-reentrant, and free of I/O; production payments require an explicit transaction boundary.
 
 
+## OOP and design patterns
+
+- **Strategy (implemented):** `ParkingLot` is the context, `PricingPolicy` is the strategy interface, and `HourlyPricingPolicy` supplies fee calculation. The lot exclusively owns the policy and uses its contract during checkout; additional fee rules can vary independently of spot allocation.
+- **OOP responsibilities:** `ParkingSpot` handles compatibility and occupancy; `ParkingLot` coordinates sessions. Vehicle, ticket, and receipt values carry data across the API without borrowing the lot's internal storage.
+- **Decorator (follow-up):** A policy wrapper could implement `PricingPolicy`, own an inner policy, and add discounts or surcharges. Its contract would define wrapper ordering and rounding.
+- **Observer (follow-up):** Capacity displays could subscribe to committed occupancy changes, with notification behavior separated from lock-held mutations.
+
+[Pattern map and catalog](../../docs/design-patterns.md)
+
 ## Scope
 
 No payments, persistence, reservations, or distributed coordination. Prices are integer cents. Use system_clock timestamps supplied by the caller; the lot rejects exits earlier than their entries.

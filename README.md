@@ -1,22 +1,28 @@
 # C++ Low-Level Design Interview Prep
 
-A public, code-first collection for learning and practicing low-level design (LLD) interviews. The examples and build scripts use **C++11** and the standard library.
+A public, code-first collection for practicing **object-oriented low-level design (LLD)** interviews: responsibilities, encapsulation, interfaces, ownership, polymorphism, and design patterns. The examples and build scripts use **C++11** and the standard library.
 
 Each of the nine examples has a question with interviewee TODOs, an explained reference implementation, deterministic behavioral tests, and related quiz questions. These are focused interview exercises, not production-ready services.
 
 ## Questions and solutions
 
-| Question / TODO starter | Solution | Main concepts |
-| --- | --- | --- |
-| [Parking Lot](questions/01-parking-lot/README.md) | [Reference design](solutions/01-parking-lot/design.md) | Ownership, Strategy, compatible allocation, atomic checkout |
-| [Connect Four](questions/02-connect-four/README.md) | [Reference design](solutions/02-connect-four/design.md) | Board modeling, gravity, directional win detection, terminal states |
-| [Amazon Locker](questions/03-amazon-locker/README.md) | [Reference design](solutions/03-amazon-locker/design.md) | Size-based allocation, injected codes, expiration, physical occupancy |
-| [Elevator](questions/04-elevator/README.md) | [Reference design](solutions/04-elevator/design.md) | Door interlocks, LOOK scheduling, bank dispatch Strategy |
-| [File System](questions/05-file-system/README.md) | [Reference design](solutions/05-file-system/design.md) | Composite hierarchy, unique ownership, path validation, traversal |
-| [Movie Ticket Booking](questions/06-movie-ticket-booking/README.md) | [Reference design](solutions/06-movie-ticket-booking/design.md) | Atomic seat holds, state machine, expiry, idempotency |
-| [Logging Service](questions/07-logging-service/README.md) | [Reference design](solutions/07-logging-service/design.md) | Sink interfaces, fanout, failure isolation, lock/lifetime boundaries |
-| [Rate Limiter](questions/08-rate-limiter/README.md) | [Reference design](solutions/08-rate-limiter/design.md) | Token-bucket invariants, weighted requests, monotonic time, contention |
-| [Inventory Management](questions/09-inventory-management/README.md) | [Reference design](solutions/09-inventory-management/design.md) | Stock invariants, multi-SKU transactions, idempotent lifecycle |
+| Question / TODO starter | Solution | OOP focus | Pattern focus |
+| --- | --- | --- | --- |
+| [Parking Lot](questions/01-parking-lot/README.md) | [Reference design](solutions/01-parking-lot/design.md) | Policy abstraction, ownership, allocation and checkout invariants | Strategy; Decorator (exercise) |
+| [Connect Four](questions/02-connect-four/README.md) | [Reference design](solutions/02-connect-four/design.md) | Encapsulated board, turn and lifecycle rules | State, Strategy, Command (exercises) |
+| [Amazon Locker](questions/03-amazon-locker/README.md) | [Reference design](solutions/03-amazon-locker/design.md) | Composed slot/session values and injected behavior | Strategy via callable; Adapter, Observer (exercises) |
+| [Elevator](questions/04-elevator/README.md) | [Reference design](solutions/04-elevator/design.md) | Car/bank responsibilities and dispatch polymorphism | Strategy; State (exercise) |
+| [File System](questions/05-file-system/README.md) | [Reference design](solutions/05-file-system/design.md) | Node hierarchy, recursive ownership and public API | Composite-style hierarchy, Facade; Visitor (exercise) |
+| [Movie Ticket Booking](questions/06-movie-ticket-booking/README.md) | [Reference design](solutions/06-movie-ticket-booking/design.md) | Seat ownership, hold lifecycle and service coordination | State, Strategy, Adapter (exercises) |
+| [Logging Service](questions/07-logging-service/README.md) | [Reference design](solutions/07-logging-service/design.md) | Sink interfaces, polymorphic delivery and shared lifetimes | Adapter, Observer-style fanout; Decorator (exercise) |
+| [Rate Limiter](questions/08-rate-limiter/README.md) | [Reference design](solutions/08-rate-limiter/design.md) | Encapsulated per-client state and atomic admission | Strategy, Decorator (exercises) |
+| [Inventory Management](questions/09-inventory-management/README.md) | [Reference design](solutions/09-inventory-management/design.md) | Stock values, reservation lifecycle and invariants | State, Strategy, Observer (exercises) |
+
+## OOP and design patterns
+
+The [design-pattern guide](docs/design-patterns.md) maps patterns to actual classes in all nine examples and includes the complete 23-pattern GoF catalog. Each reference design explains its OOP responsibilities and pattern choices; each question includes discussion TODOs for exploring alternatives.
+
+Patterns marked **exercise** are follow-ups rather than implemented features. The guide also distinguishes enum-based state machines from the State pattern and algorithms such as token bucket and LOOK from design patterns.
 
 ## Practice without seeing the answer
 
@@ -75,6 +81,7 @@ Use `CXX=clang++` to select Clang in the shell script. For compiler environments
 
 - [C++ LLD foundations](quizzes/questions.md) → [answers](quizzes/solutions.md)
 - [Nine-example scenario quiz](quizzes/examples-questions.md) → [answers](quizzes/examples-solutions.md)
+- [OOP and design-pattern quiz](quizzes/design-patterns-questions.md) → [answers](quizzes/design-patterns-solutions.md)
 
 Try answering before opening the explanations, then discuss the tradeoffs behind each choice.
 
@@ -95,7 +102,7 @@ Try answering before opening the explanations, then discuss the tradeoffs behind
 - `solutions/`: reference code, design explanations, and behavioral tests
 - `quizzes/`: knowledge and scenario questions with separate answer keys
 - `common/`: test harness and a small optional-value helper
-- `docs/`: [interview playbook](docs/interview-playbook.md) and [review rubric](docs/review-checklist.md)
+- `docs/`: [OOP and design patterns](docs/design-patterns.md), [interview playbook](docs/interview-playbook.md), and [review rubric](docs/review-checklist.md)
 - `templates/`: reusable requirements and retrospective notes
 
 Contributions and alternative designs are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Public reuse is covered by the [MIT license](LICENSE).

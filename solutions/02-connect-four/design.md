@@ -17,6 +17,15 @@ The model has no UI dependencies and is deliberately single-threaded. A network 
 At terminal state, status is authoritative; next_player retains the final mover and is not a request to play again.
 
 
+## OOP and design patterns
+
+- **Current OOP design:** `Game` encapsulates the board, turn, move count, and terminal status. A move result is a value snapshot. The enum-based lifecycle is a state machine; it does not currently delegate behavior to GoF State objects.
+- **Strategy (follow-up):** A move-selection interface could let human and AI players choose columns while `Game` remains responsible for legality and outcomes.
+- **Command (follow-up):** A drop command could represent an executable move and retain enough prior state for undo. A Memento is another option for restoring a complete game snapshot.
+- **State (follow-up):** Separate state objects could organize playing/finished behavior if replay, pause, or network-session rules make it complex enough to benefit from delegation.
+
+[Pattern map and catalog](../../docs/design-patterns.md)
+
 ## Scope
 
 Single-threaded rules engine only. No UI, AI, network play, or undo. Rows and columns are zero-based; row 0 is the top. next_player is meaningful only while playing.

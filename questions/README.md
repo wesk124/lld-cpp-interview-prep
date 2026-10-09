@@ -2,6 +2,8 @@
 
 Every starter has an explicit public contract and marked TODOs. Implement your own state and behavior before inspecting `solutions/`.
 
+Each prompt also includes OOP and pattern discussion TODOs. Use the [pattern guide](../docs/design-patterns.md) for a catalog of ideas and the [pattern quiz](../quizzes/design-patterns-questions.md) to practice explaining their intent. Pattern follow-ups are optional extensions to the base test contract.
+
 | Question | Main concepts |
 | --- | --- |
 | [Parking Lot](01-parking-lot/README.md) | Ownership, Strategy, compatible allocation, atomic checkout |
